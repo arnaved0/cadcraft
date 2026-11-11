@@ -3,8 +3,8 @@
 //! the application menu reaches the menu bar's commands, and the workspace switches back to Tool
 //! Sets and the palettes.
 
-use cadcraft_engine::Session;
-use cadcraft_ui_egui::{CadApp, Services};
+use autocraft_engine::Session;
+use autocraft_ui_egui::{CadApp, Services};
 use egui::vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;

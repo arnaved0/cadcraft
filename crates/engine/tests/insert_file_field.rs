@@ -4,11 +4,11 @@
 
 use std::sync::Arc;
 
-use cadcraft_engine::Session;
-use cadcraft_engine::cmd::file::{IoHooks, set_io};
-use cadcraft_engine::doc::foreign::{ForeignExtra, ForeignObject};
-use cadcraft_engine::doc::{Attrib, Drawing, Entity, EntityKind, Handle, RawTag, Text};
-use cadcraft_engine::geom::Vec3;
+use autocraft_engine::Session;
+use autocraft_engine::cmd::file::{IoHooks, set_io};
+use autocraft_engine::doc::foreign::{ForeignExtra, ForeignObject};
+use autocraft_engine::doc::{Attrib, Drawing, Entity, EntityKind, Handle, RawTag, Text};
+use autocraft_engine::geom::Vec3;
 use serde_json::json;
 
 #[path = "support/temp_dir.rs"]

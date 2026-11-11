@@ -9,10 +9,10 @@
 //! picks pass `min_dash = 0` and `view = None` and get every line.
 
 use super::{Builder, Ctx, Ink, fill, ink, max_scale};
-use cadcraft_color::{Color, Rgb};
-use cadcraft_doc::library::{PatternLine, pattern_for};
-use cadcraft_doc::{Drawing, Entity, Gradient, Hatch};
-use cadcraft_geom::{Bounds2, PolyVertex, Polyline, Vec2, point_in_polygon};
+use autocraft_color::{Color, Rgb};
+use autocraft_doc::library::{PatternLine, pattern_for};
+use autocraft_doc::{Drawing, Entity, Gradient, Hatch};
+use autocraft_geom::{Bounds2, PolyVertex, Polyline, Vec2, point_in_polygon};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Draw a hatch entity: `rgb` is its resolved colour, `tol` the chord tolerance.
@@ -129,7 +129,7 @@ const MAX_DEDUP_COMPARISONS: u64 = 50_000_000;
 /// ignore keeps only the outermost loops. Nesting depth = how many other loops enclose a loop.
 pub fn fill_loops(h: &Hatch, tol: f64) -> Vec<Vec<Vec2>> {
     // One point budget for all the loops: many short arcs across loops must not add up unbounded.
-    let mut budget = cadcraft_geom::MAX_TESSELLATED_POINTS;
+    let mut budget = autocraft_geom::MAX_TESSELLATED_POINTS;
     // Source loops that are the same boundary up to start vertex and winding are tessellated once, so a
     // duplicate cannot be sampled coarser than its twin by the shared budget and then escape `dedup_polygons`.
     let mut seen = std::collections::HashSet::new();
@@ -671,8 +671,8 @@ fn crossings(local: &[Vec<Vec2>], y: f64) -> Vec<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cadcraft_doc::{Hatch, HatchLoop};
-    use cadcraft_geom::PolyVertex;
+    use autocraft_doc::{Hatch, HatchLoop};
+    use autocraft_geom::PolyVertex;
 
     #[test]
     fn fill_loops_deduplicates_coincident_loops() {

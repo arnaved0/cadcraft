@@ -1,9 +1,9 @@
 //! SVG export of drawings with tiny extents: the viewBox, stroke width and point radius must
 //! stay non-zero, and coordinates must keep their significant digits.
 
-use cadcraft_doc::{Common, Drawing, EntityKind, Line, Point, Space};
-use cadcraft_geom::Vec3;
-use cadcraft_io::svg;
+use autocraft_doc::{Common, Drawing, EntityKind, Line, Point, Space};
+use autocraft_geom::Vec3;
+use autocraft_io::svg;
 
 /// The numbers of attribute `name="…"` (whitespace separated) in the first element carrying it.
 fn attr(s: &str, name: &str) -> Vec<f64> {

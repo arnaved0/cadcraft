@@ -1,7 +1,7 @@
 //! Drafting Settings shows the polar increment angle as picked, not its radians round trip (#1237).
 
-use cadcraft_engine::Session;
-use cadcraft_ui_egui::{CadApp, Services, dialogs, theme};
+use autocraft_engine::Session;
+use autocraft_ui_egui::{CadApp, Services, dialogs, theme};
 use egui::accesskit::Role;
 use egui_kittest::Harness;
 use egui_kittest::kittest::{NodeT, Queryable};

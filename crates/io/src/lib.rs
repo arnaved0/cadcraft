@@ -1,8 +1,8 @@
-//! CADCraft file formats: DXF/DWG read, SVG and SVGZ import, SVG/PNG/PDF export (plotting).
+//! AutoCraft file formats: DXF/DWG read, SVG and SVGZ import, SVG/PNG/PDF export (plotting).
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
-/// What a DXF file holds that CADCraft doesn't model, kept and written back (#528).
+/// What a DXF file holds that AutoCraft doesn't model, kept and written back (#528).
 mod dxf_raw;
 
 /// XCLIP boundaries as SPATIAL_FILTER objects.
@@ -26,12 +26,12 @@ mod svg_read;
 /// Multilines and their styles (MLINE, MLINESTYLE).
 mod dxf_mline;
 
-use cadcraft_doc::{Drawing, Space};
-use cadcraft_geom::Bounds2;
+use autocraft_doc::{Drawing, Space};
+use autocraft_geom::Bounds2;
 use std::path::{Path, PathBuf};
 
-pub use cadcraft_doc::Format;
-pub use cadcraft_dxf::Version;
+pub use autocraft_doc::Format;
+pub use autocraft_dxf::Version;
 pub use dxf_read::entity_from_groups;
 pub use dxf_write::entity_groups;
 pub use pdf::{PdfOptions, pdf, plot};
@@ -46,9 +46,9 @@ pub struct SaveOptions {
 }
 
 /// The version a drawing is saved in when none is asked for: the version of the file it was
-/// read from (`$ACADVER`, the nearest one CADCraft writes), and 2018 for a new drawing.
+/// read from (`$ACADVER`, the nearest one AutoCraft writes), and 2018 for a new drawing.
 pub fn save_version(d: &Drawing) -> Version {
-    d.header.get("ACADVER").and_then(cadcraft_doc::HVal::as_str).and_then(Version::for_acadver).unwrap_or_default()
+    d.header.get("ACADVER").and_then(autocraft_doc::HVal::as_str).and_then(Version::for_acadver).unwrap_or_default()
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -61,11 +61,11 @@ pub enum IoError {
 
 pub type Result<T> = std::result::Result<T, IoError>;
 
-/// How a program runs the DWG reader and writer in a child process (`cadcraft_dwg::worker`).
+/// How a program runs the DWG reader and writer in a child process (`autocraft_dwg::worker`).
 pub mod dwg_worker {
-    pub use cadcraft_dwg::{WORKER_ARG, serve_if_asked, use_own_worker};
+    pub use autocraft_dwg::{WORKER_ARG, serve_if_asked, use_own_worker};
     #[cfg(all(not(target_arch = "wasm32"), not(all(target_os = "freebsd", target_arch = "aarch64"))))]
-    pub use cadcraft_dwg::{crash_worker_for_test, use_worker};
+    pub use autocraft_dwg::{crash_worker_for_test, use_worker};
 }
 
 fn ext(name: impl AsRef<Path>) -> String {
@@ -81,8 +81,8 @@ pub fn read(bytes: &[u8], name: impl AsRef<Path>) -> Result<Drawing> {
 /// [`read`], also returning the DXF rendition a DWG was read through (`None` for other files),
 /// which the round-trip harness counts.
 pub(crate) fn read_source(bytes: &[u8], name: &Path) -> Result<(Drawing, Option<Vec<u8>>)> {
-    if cadcraft_dwg::is_dwg(bytes) {
-        let (dxf, notes) = cadcraft_dwg::decode(bytes, cadcraft_dwg::Limits::DEFAULT).map_err(IoError::Format)?;
+    if autocraft_dwg::is_dwg(bytes) {
+        let (dxf, notes) = autocraft_dwg::decode(bytes, autocraft_dwg::Limits::DEFAULT).map_err(IoError::Format)?;
         let mut d = dxf_read::read(&dxf).map_err(|e| IoError::Format(format!("{e} (in the DXF converted from this DWG)")))?;
         d.read_notes = notes;
         return Ok((d, Some(dxf)));
@@ -114,10 +114,10 @@ pub fn write_with(d: &Drawing, name: impl AsRef<Path>, opts: &SaveOptions) -> Re
             // Before 2007 the text is in the code page the header declares.
             let code_page = dxf_write::code_page(d, version);
             Ok(match (opts.binary, version.utf8()) {
-                (true, true) => cadcraft_dxf::write_binary(&tags, true),
-                (true, false) => cadcraft_dxf::write_binary_in(&tags, &code_page),
-                (false, true) => cadcraft_dxf::write_ascii_as(&tags, true).into_bytes(),
-                (false, false) => cadcraft_dxf::write_ascii_in(&tags, &code_page),
+                (true, true) => autocraft_dxf::write_binary(&tags, true),
+                (true, false) => autocraft_dxf::write_binary_in(&tags, &code_page),
+                (false, true) => autocraft_dxf::write_ascii_as(&tags, true).into_bytes(),
+                (false, false) => autocraft_dxf::write_ascii_in(&tags, &code_page),
             })
         }
         // The DWG bridge reads our R2000 DXF and writes the DWG at the version asked for. Without
@@ -132,21 +132,21 @@ pub fn write_with(d: &Drawing, name: impl AsRef<Path>, opts: &SaveOptions) -> Re
 /// [`write_with`], also returning what the file leaves out of the drawing: for a DWG, how many
 /// records of each DXF type the DWG writer can't write (other programs' custom entities and
 /// objects); for other formats, nothing.
-pub fn write_noted(d: &Drawing, name: impl AsRef<Path>, opts: &SaveOptions) -> Result<(Vec<u8>, cadcraft_dwg::Unwritten)> {
+pub fn write_noted(d: &Drawing, name: impl AsRef<Path>, opts: &SaveOptions) -> Result<(Vec<u8>, autocraft_dwg::Unwritten)> {
     let name = name.as_ref();
     if matches!(Format::from_path(name), Some(Format::Dwg)) && !opts.binary {
         return write_dwg(d, opts.version.unwrap_or_else(|| save_version(d).max(Version::R2004)));
     }
-    write_with(d, name, opts).map(|b| (b, cadcraft_dwg::Unwritten::new()))
+    write_with(d, name, opts).map(|b| (b, autocraft_dwg::Unwritten::new()))
 }
 
 /// The DWG bridge reads our R2000 DXF and writes the DWG at `version`, in the DWG worker when
-/// there is one. The objects CADCraft keeps without modelling them are still in the groups of the
+/// there is one. The objects AutoCraft keeps without modelling them are still in the groups of the
 /// file they came from (`Foreign::version`, not `$ACADVER`, which SAVEAS changes), and the bridge
 /// reads them as that version.
-fn write_dwg(d: &Drawing, version: Version) -> Result<(Vec<u8>, cadcraft_dwg::Unwritten)> {
+fn write_dwg(d: &Drawing, version: Version) -> Result<(Vec<u8>, autocraft_dwg::Unwritten)> {
     let bridge = dxf_write::dwg_bridge(d, version);
-    cadcraft_dwg::encode_kept_noted(bridge.as_bytes(), version.code(), d.foreign.version.as_deref()).map_err(IoError::Format)
+    autocraft_dwg::encode_kept_noted(bridge.as_bytes(), version.code(), d.foreign.version.as_deref()).map_err(IoError::Format)
 }
 
 /// Like [`write`], but image formats (PNG, SVG, PDF) show `window` (a model-space rectangle in
@@ -213,17 +213,17 @@ pub fn png(d: &Drawing, space: &Space, width: u32, height: u32) -> Result<Vec<u8
 /// extents (5% margin) when `window` is `None`. Objects are drawn with their transparency, as on
 /// screen.
 pub fn png_framed(d: &Drawing, space: &Space, width: u32, height: u32, window: Option<Bounds2>) -> Result<Vec<u8>> {
-    let list = cadcraft_render::build(d, space, &cadcraft_render::Options { transparency: true, ..cadcraft_render::Options::default() });
+    let list = autocraft_render::build(d, space, &autocraft_render::Options { transparency: true, ..autocraft_render::Options::default() });
     let view = png_view(&list.bounds, width, height, window);
-    cadcraft_render::raster::render_png(&list, &view, &cadcraft_render::raster::RasterOptions::default())
+    autocraft_render::raster::render_png(&list, &view, &autocraft_render::raster::RasterOptions::default())
         .ok_or_else(|| IoError::Format("render failed".into()))
 }
 
 /// The raster view a PNG export uses.
-pub fn png_view(extents: &Bounds2, width: u32, height: u32, window: Option<Bounds2>) -> cadcraft_render::raster::View {
+pub fn png_view(extents: &Bounds2, width: u32, height: u32, window: Option<Bounds2>) -> autocraft_render::raster::View {
     match window {
-        Some(w) => cadcraft_render::raster::View::fit(&w, width, height, 0.0),
-        None => cadcraft_render::raster::View::fit(extents, width, height, 0.05),
+        Some(w) => autocraft_render::raster::View::fit(&w, width, height, 0.0),
+        None => autocraft_render::raster::View::fit(extents, width, height, 0.05),
     }
 }
 

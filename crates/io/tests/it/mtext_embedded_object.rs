@@ -3,11 +3,11 @@
 //! one for MTEXT with column settings, and the DWG bridge does too. Reading 11 from it as the
 //! direction turned the text towards its own insertion point (#667).
 
-use cadcraft_doc::{Common, Drawing, EntityKind, MText, Space};
-use cadcraft_geom::Vec3;
-use cadcraft_io::{read_dxf, write_dxf};
+use autocraft_doc::{Common, Drawing, EntityKind, MText, Space};
+use autocraft_geom::Vec3;
+use autocraft_io::{read_dxf, write_dxf};
 
-/// An MTEXT at (30, 17) with `rotation`, written by CADCraft, then given an embedded object
+/// An MTEXT at (30, 17) with `rotation`, written by AutoCraft, then given an embedded object
 /// as AutoCAD writes it: direction `dir` in 10/20/30 and the insertion point in 11/21/31.
 fn with_embedded_object(rotation: f64, dir: (f64, f64)) -> String {
     let mut d = Drawing::new_metric();

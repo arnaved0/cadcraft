@@ -7,9 +7,9 @@
 
 use std::collections::HashMap;
 
-use cadcraft_fonts::subset::{self, Embedding};
-use cadcraft_fonts::ttf::Face;
-use cadcraft_render::{DisplayList, PlotText};
+use autocraft_fonts::subset::{self, Embedding};
+use autocraft_fonts::ttf::Face;
+use autocraft_render::{DisplayList, PlotText};
 use craft_pdf::write::backend::text::Font;
 
 /// Most embedded fonts in one file.

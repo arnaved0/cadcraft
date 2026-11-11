@@ -1,10 +1,10 @@
 //! `properties.set`, which the Properties palette, Quick Properties and CHPROP edit through, leaves
 //! objects on locked layers alone as CHPROP, MATCHPROP and MOVE do, and says how many it left out.
 
-use cadcraft_engine::Session;
-use cadcraft_engine::doc::color::Color;
-use cadcraft_engine::doc::{Common, EntityKind, Handle, Insert, Space};
-use cadcraft_engine::geom::Vec3;
+use autocraft_engine::Session;
+use autocraft_engine::doc::color::Color;
+use autocraft_engine::doc::{Common, EntityKind, Handle, Insert, Space};
+use autocraft_engine::geom::Vec3;
 use serde_json::{Value, json};
 
 fn handle(v: &Value) -> Handle {

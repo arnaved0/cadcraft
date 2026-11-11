@@ -1,9 +1,9 @@
 //! User shortcuts are checked however they arrive: `ui.set` drops what the preferences would,
 //! and a malformed preference value leaves the shortcuts as they are.
 
-use cadcraft_engine::Session;
-use cadcraft_ui_egui::control::{ControlRequest, Outcome, handle};
-use cadcraft_ui_egui::{CadApp, Services};
+use autocraft_engine::Session;
+use autocraft_ui_egui::control::{ControlRequest, Outcome, handle};
+use autocraft_ui_egui::{CadApp, Services};
 use serde_json::{Value, json};
 
 fn call(app: &mut CadApp, ctx: &egui::Context, method: &str, params: Value) -> Value {

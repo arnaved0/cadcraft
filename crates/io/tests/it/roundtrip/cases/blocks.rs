@@ -3,9 +3,9 @@
 
 use std::sync::Arc;
 
-use cadcraft_color::Color;
-use cadcraft_doc::{Attrib, AttribModes, AttribProps, Block, Common, Entity, EntityKind, Insert, Line, Lineweight, Space, Text};
-use cadcraft_geom::Vec3;
+use autocraft_color::Color;
+use autocraft_doc::{Attrib, AttribModes, AttribProps, Block, Common, Entity, EntityKind, Insert, Line, Lineweight, Space, Text};
+use autocraft_geom::Vec3;
 
 use super::{Case, drawing, text};
 
@@ -196,8 +196,8 @@ pub(crate) fn multiline_attributes() -> Vec<Case> {
             let decorate = |a: &mut Attrib| {
                 a.text.insert = text_point;
                 a.text.value = "first\nsecond".into();
-                a.multiline = Some(cadcraft_doc::MultilineAttrib {
-                    mtext: cadcraft_doc::MText {
+                a.multiline = Some(autocraft_doc::MultilineAttrib {
+                    mtext: autocraft_doc::MText {
                         insert: mtext_point,
                         height: 1.0,
                         width: 6.0,

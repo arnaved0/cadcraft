@@ -5,7 +5,7 @@
 //! that does not fit collapses to a single button that opens the panel's commands in a menu.
 //! Every button reaches its command through [`crate::menus::activate`], like the menus do.
 
-use cadcraft_color::Color;
+use autocraft_color::Color;
 use egui::{Align2, Color32, Rect, Sense, Stroke, pos2, vec2};
 use serde_json::json;
 
@@ -347,7 +347,7 @@ pub fn height(app: &CadApp) -> f32 {
 }
 
 fn command_known(id: &str) -> bool {
-    cadcraft_engine::find_command(id).is_some() || crate::menus::is_ui_command(id)
+    autocraft_engine::find_command(id).is_some() || crate::menus::is_ui_command(id)
 }
 
 /// The tab named `name`, or the first.
@@ -773,7 +773,7 @@ fn property_lists(app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, area: 
     let Ok(d) = app.session.doc() else { return };
     let color = Color::from_aci(i16::try_from(d.header.i64("CECOLOR", 256)).unwrap_or(256));
     let linetype = d.header.str("CELTYPE", "ByLayer");
-    let weight = cadcraft_doc::Lineweight::from_dxf(i16::try_from(d.header.i64("CELWEIGHT", -1)).unwrap_or(-1)).name();
+    let weight = autocraft_doc::Lineweight::from_dxf(i16::try_from(d.header.i64("CELWEIGHT", -1)).unwrap_or(-1)).name();
     let rows: [(&'static str, &str, String); 3] =
         [("color", "Object Color", color.name()), ("linetype", "Linetype", linetype), ("lweight", "Lineweight", weight.to_string())];
     for (row, (cmd, label, value)) in rows.into_iter().enumerate() {

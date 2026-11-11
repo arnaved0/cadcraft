@@ -1,11 +1,11 @@
 //! INSERT of exploded blocks (`*NAME`) and of drawing files (`-INSERT path`, `NAME=path`, JSON
 //! `file`), read through the io hooks (#340).
 
-use cadcraft_engine::Session;
-use cadcraft_engine::cmd::file::{IoHooks, set_io};
-use cadcraft_engine::doc::color::Color;
-use cadcraft_engine::doc::geom::Vec3;
-use cadcraft_engine::doc::{Block, Circle, Drawing, Entity, EntityKind, HVal, Handle, Insert, Layer, Line};
+use autocraft_engine::Session;
+use autocraft_engine::cmd::file::{IoHooks, set_io};
+use autocraft_engine::doc::color::Color;
+use autocraft_engine::doc::geom::Vec3;
+use autocraft_engine::doc::{Block, Circle, Drawing, Entity, EntityKind, HVal, Handle, Insert, Layer, Line};
 use serde_json::json;
 
 #[path = "support/temp_dir.rs"]

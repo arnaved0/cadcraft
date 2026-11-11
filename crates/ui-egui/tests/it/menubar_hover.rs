@@ -1,8 +1,8 @@
 //! The in-window menu bar (#1567): once a menu is open, pointing at another title switches to that
 //! menu. With no menu open, pointing at a title opens nothing.
 
-use cadcraft_engine::Session;
-use cadcraft_ui_egui::{CadApp, Services};
+use autocraft_engine::Session;
+use autocraft_ui_egui::{CadApp, Services};
 use egui::accesskit::Role;
 use egui::vec2;
 use egui_kittest::Harness;

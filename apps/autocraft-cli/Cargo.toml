@@ -1,0 +1,34 @@
+[package]
+name = "autocraft-cli"
+description = "AutoCraft command-line tool: info, convert, run scripts, export, commands, MCP server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+name = "autocraft_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "autocraft-cli"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+autocraft-engine = { workspace = true }
+autocraft-io = { workspace = true }
+autocraft-mcp = { workspace = true }
+autocraft-render = { workspace = true }
+clap = { workspace = true }
+same-file = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+# Shell completions and man pages (examples/man-and-completions.rs, for the Linux packages); not
+# in the binary.
+clap_complete = { workspace = true }
+clap_mangen = { workspace = true }

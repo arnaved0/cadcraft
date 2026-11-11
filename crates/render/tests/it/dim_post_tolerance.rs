@@ -1,8 +1,8 @@
 //! DIMPOST's suffix goes on the tolerance values as well as on the measurement (issue #390).
 
-use cadcraft_doc::{DimKind, DimStyle, Dimension};
-use cadcraft_geom::Vec3;
-use cadcraft_render::dimension_geometry;
+use autocraft_doc::{DimKind, DimStyle, Dimension};
+use autocraft_geom::Vec3;
+use autocraft_render::dimension_geometry;
 
 fn text(vars: serde_json::Value) -> (String, String) {
     let d = Dimension {

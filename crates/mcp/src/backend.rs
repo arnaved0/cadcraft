@@ -4,11 +4,11 @@ use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{Ipv4Addr, SocketAddr, TcpStream, ToSocketAddrs};
 use std::time::Duration;
 
-use cadcraft_engine::Session;
+use autocraft_engine::Session;
 use serde_json::{Value, json};
 
 /// Something that answers control-channel methods (`engine.execute`, `cmdline.input`,
-/// `drawing.inspect`, `ui.render`…). See `cadcraft_ui_egui::control` for the full list.
+/// `drawing.inspect`, `ui.render`…). See `autocraft_ui_egui::control` for the full list.
 pub trait Backend {
     /// Invoke a control method and return its result or a descriptive error.
     fn call(&mut self, method: &str, params: Value) -> Result<Value, String>;
@@ -18,7 +18,7 @@ pub trait Backend {
     fn describe(&self) -> String;
 }
 
-/// A running CADCraft app reached through its loopback control port.
+/// A running AutoCraft app reached through its loopback control port.
 pub struct Remote {
     addr: String,
     conn: Option<(BufReader<TcpStream>, TcpStream)>,
@@ -53,7 +53,7 @@ fn read_reply_line(reader: &mut impl BufRead, reply: &mut String, max: usize) ->
     if n > max && !reply.ends_with('\n') {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,
-            format!("reply from the control port is longer than {max} bytes; is that CADCraft's control server?"),
+            format!("reply from the control port is longer than {max} bytes; is that AutoCraft's control server?"),
         ));
     }
     Ok(n)
@@ -113,7 +113,7 @@ impl Remote {
         Err(std::io::Error::new(
             std::io::ErrorKind::TimedOut,
             format!(
-                "CADCraft was opened but its control port {} did not answer; if it was already open without the port, quit it and try again",
+                "AutoCraft was opened but its control port {} did not answer; if it was already open without the port, quit it and try again",
                 self.addr
             ),
         ))
@@ -165,14 +165,14 @@ impl Remote {
 
 /// The `window` of a `ui.render` request: two finite corners [[x0, y0], [x1, y1]] around an area
 /// (`None` when absent or unusable).
-fn render_window(p: &Value) -> Option<cadcraft_engine::geom::Bounds2> {
+fn render_window(p: &Value) -> Option<autocraft_engine::geom::Bounds2> {
     let a = p.get("window")?.as_array().filter(|a| a.len() == 2)?;
-    let pt = |v: &Value| -> Option<cadcraft_engine::geom::Vec2> {
+    let pt = |v: &Value| -> Option<autocraft_engine::geom::Vec2> {
         let c = v.as_array().filter(|c| c.len() == 2)?;
         let (x, y) = (c[0].as_f64()?, c[1].as_f64()?);
-        (x.is_finite() && y.is_finite()).then(|| cadcraft_engine::geom::Vec2::new(x, y))
+        (x.is_finite() && y.is_finite()).then(|| autocraft_engine::geom::Vec2::new(x, y))
     };
-    let b = cadcraft_engine::geom::Bounds2::new(pt(&a[0])?, pt(&a[1])?);
+    let b = autocraft_engine::geom::Bounds2::new(pt(&a[0])?, pt(&a[1])?);
     (b.width() > 0.0 && b.height() > 0.0).then_some(b)
 }
 
@@ -181,19 +181,19 @@ fn not_open(addr: &str, e: std::io::Error) -> std::io::Error {
     std::io::Error::new(
         e.kind(),
         format!(
-            "CADCraft is not answering at {addr} ({e}). Open CADCraft with its control port (`--control PORT` or CADCRAFT_CONTROL_PORT), then try again"
+            "AutoCraft is not answering at {addr} ({e}). Open AutoCraft with its control port (`--control PORT` or AUTOCRAFT_CONTROL_PORT), then try again"
         ),
     )
 }
 
-/// Open the app with the control port of `addr` (macOS: `open -a CADCraft`).
+/// Open the app with the control port of `addr` (macOS: `open -a AutoCraft`).
 fn launch_app(addr: &str) -> std::io::Result<()> {
     let port = addr.rsplit(':').next().filter(|p| p.parse::<u16>().is_ok()).ok_or_else(|| std::io::Error::other(format!("no port in {addr}")))?;
     if cfg!(target_os = "macos") {
-        let ok = std::process::Command::new("open").args(["-a", "CADCraft", "--args", "--control", port]).status()?.success();
-        if ok { Ok(()) } else { Err(std::io::Error::other("could not open CADCraft (is it in Applications?)")) }
+        let ok = std::process::Command::new("open").args(["-a", "AutoCraft", "--args", "--control", port]).status()?.success();
+        if ok { Ok(()) } else { Err(std::io::Error::other("could not open AutoCraft (is it in Applications?)")) }
     } else {
-        Err(std::io::Error::other(format!("CADCraft is not running; start it with `cadcraft --control {port}`")))
+        Err(std::io::Error::other(format!("AutoCraft is not running; start it with `autocraft --control {port}`")))
     }
 }
 
@@ -243,7 +243,7 @@ impl Remote {
                 // A mutation whose reply was lost must never be sent twice.
                 if sent && !is_read_only(method) {
                     return Err(format!(
-                        "CADCraft at {}: {e}; the reply was lost, so `{method}` may or may not have been applied. Inspect the drawing first",
+                        "AutoCraft at {}: {e}; the reply was lost, so `{method}` may or may not have been applied. Inspect the drawing first",
                         self.addr
                     ));
                 }
@@ -251,7 +251,7 @@ impl Remote {
                 self.sign_and_send(req).map_err(|(e, _)| {
                     self.token = None;
                     self.conn = None;
-                    format!("CADCraft at {}: {e}", self.addr)
+                    format!("AutoCraft at {}: {e}", self.addr)
                 })?
             }
         };
@@ -289,7 +289,7 @@ impl Backend for Remote {
             }
             // A timeout says whether the request can still have run (#345).
             Err(match v.get("state").and_then(Value::as_str) {
-                Some("not-run") => format!("{e}: CADCraft did not start `{method}` and won't; it is safe to send again"),
+                Some("not-run") => format!("{e}: AutoCraft did not start `{method}` and won't; it is safe to send again"),
                 Some("may-have-run") => format!("{e}: `{method}` may or may not have been applied. Inspect the drawing first"),
                 _ => e.to_string(),
             })
@@ -299,7 +299,7 @@ impl Backend for Remote {
         true
     }
     fn describe(&self) -> String {
-        format!("connected to CADCraft at {}", self.addr)
+        format!("connected to AutoCraft at {}", self.addr)
     }
 }
 
@@ -331,7 +331,7 @@ impl Default for Headless {
     }
 }
 
-/// The command-line state, with the same fields as the app's (`cadcraft_ui_egui::control`). There
+/// The command-line state, with the same fields as the app's (`autocraft_ui_egui::control`). There
 /// is no command-line widget here: nothing is typed (`buffer`) and the history isn't expanded.
 fn state(s: &Session) -> Value {
     let p = s.current_prompt();
@@ -386,7 +386,7 @@ impl Backend for Headless {
                     s.cancel();
                     Ok(())
                 } else {
-                    s.input(cadcraft_engine::Input::Enter)
+                    s.input(autocraft_engine::Input::Enter)
                 };
                 // Like the app: a refused Enter is echoed to the history (and `output`), and also
                 // reported in `error`; the call itself succeeds.
@@ -405,7 +405,7 @@ impl Backend for Headless {
             }
             "cmdline.state" => Ok(state(s)),
             "engine.commands" => {
-                Ok(Value::Array(cadcraft_engine::command_specs().iter().map(|c| serde_json::to_value(c.info(s)).unwrap_or_default()).collect()))
+                Ok(Value::Array(autocraft_engine::command_specs().iter().map(|c| serde_json::to_value(c.info(s)).unwrap_or_default()).collect()))
             }
             "drawing.inspect" | "document.inspect" => s.execute("drawing.inspect", &p).map_err(|e| e.to_string()),
             "ui.render" => {
@@ -414,32 +414,32 @@ impl Backend for Headless {
                 let st = s.state().map_err(|e| e.to_string())?;
                 let window = render_window(&p);
                 // `background` and `plot_style` (#803), read as the app reads them.
-                let look = cadcraft_engine::render_look::RenderLook::from_params(&st.doc, &p)?;
-                let opts = cadcraft_render::Options {
+                let look = autocraft_engine::render_look::RenderLook::from_params(&st.doc, &p)?;
+                let opts = autocraft_render::Options {
                     view: window,
                     transparency: s.settings.transparency_display,
                     plot_style_table: look.plot_style_table.clone(),
                     ..Default::default()
                 };
-                let list = cadcraft_render::build(&st.doc, &st.space, &opts);
+                let list = autocraft_render::build(&st.doc, &st.space, &opts);
                 let fit = p.get("fit").and_then(Value::as_bool).unwrap_or(true);
                 let side = |k: &str| p.get(k).and_then(Value::as_f64).map(|x| x as u32);
                 let view = if let Some(win) = &window {
-                    cadcraft_render::raster::View::of_window(win, side("width"), side("height"))
+                    autocraft_render::raster::View::of_window(win, side("width"), side("height"))
                 } else if fit {
-                    cadcraft_render::raster::View::fit(&list.bounds, w, h, 0.05)
+                    autocraft_render::raster::View::fit(&list.bounds, w, h, 0.05)
                 } else {
                     let v = st.view();
-                    cadcraft_render::raster::View { center: v.center, scale: f64::from(h) / v.height.max(1e-12), width: w, height: h }
+                    autocraft_render::raster::View { center: v.center, scale: f64::from(h) / v.height.max(1e-12), width: w, height: h }
                 };
                 let (w, h) = (view.width, view.height);
-                let png = cadcraft_render::raster::render_png(&list, &view, &look.raster()).ok_or("render failed")?;
+                let png = autocraft_render::raster::render_png(&list, &view, &look.raster()).ok_or("render failed")?;
                 let mut r =
-                    json!({"pngBase64": cadcraft_engine::cmd::file::base64_encode(&png), "width": w, "height": h, "truncated": list.truncated});
+                    json!({"pngBase64": autocraft_engine::cmd::file::base64_encode(&png), "width": w, "height": h, "truncated": list.truncated});
                 if let Some(path) = str_p("path") {
                     let file = std::path::Path::new(&path);
-                    let folder = cadcraft_engine::atomic_write::missing_folder(file);
-                    cadcraft_engine::atomic_write::write_atomic_making_folders(file, &png).map_err(|e| format!("{path}: {e}"))?;
+                    let folder = autocraft_engine::atomic_write::missing_folder(file);
+                    autocraft_engine::atomic_write::write_atomic_making_folders(file, &png).map_err(|e| format!("{path}: {e}"))?;
                     if let Some(folder) = folder {
                         r["createdFolder"] = json!(folder.display().to_string());
                     }
@@ -467,7 +467,7 @@ impl Backend for Headless {
         false
     }
     fn describe(&self) -> String {
-        "headless CADCraft session".into()
+        "headless AutoCraft session".into()
     }
 }
 

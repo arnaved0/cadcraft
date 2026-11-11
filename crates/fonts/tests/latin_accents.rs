@@ -1,5 +1,5 @@
-use cadcraft_fonts::{MTextParams, TextFont, char_advance, layout_mtext_with, line_width, shape_stroke};
-use cadcraft_geom::Vec2;
+use autocraft_fonts::{MTextParams, TextFont, char_advance, layout_mtext_with, line_width, shape_stroke};
+use autocraft_geom::Vec2;
 
 #[test]
 fn latin_accents_keep_single_strokes_and_the_base_letter_spacing() {

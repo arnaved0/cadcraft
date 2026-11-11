@@ -1,53 +1,53 @@
 {
-  "id": "cadcraft",
-  "name": "CADCraft",
+  "id": "autocraft",
+  "name": "AutoCraft",
   "upgradeCode": "119D7D76-0167-4A9E-8F37-09DA0235F68E",
   "sources": [
-    "cadcraft.wxs"
+    "autocraft.wxs"
   ],
-  "icon": "assets/app-icon/cadcraft.ico",
+  "icon": "assets/app-icon/autocraft.ico",
   "localization": [],
   "extensions": [
     "UI"
   ],
   "payloads": [
-    "cadcraft-cli.exe",
-    "cadcraft.exe"
+    "autocraft-cli.exe",
+    "autocraft.exe"
   ],
   "registry": [
     [
       "-1",
-      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\cadcraft.exe",
+      "Software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\autocraft.exe",
       "",
-      "[#CadcraftExe]"
+      "[#AutocraftExe]"
     ],
     [
       "-1",
-      "Software\\Classes\\Applications\\cadcraft.exe\\shell\\open\\command",
+      "Software\\Classes\\Applications\\autocraft.exe\\shell\\open\\command",
       "",
-      "\"[#CadcraftExe]\" \"%1\""
+      "\"[#AutocraftExe]\" \"%1\""
     ],
     [
       "-1",
       "Software\\Classes\\.dxf\\OpenWithProgids",
-      "CADCraft.Drawing",
+      "AutoCraft.Drawing",
       ""
     ],
     [
       "-1",
       "Software\\Classes\\.dwg\\OpenWithProgids",
-      "CADCraft.Drawing",
+      "AutoCraft.Drawing",
       ""
     ],
     [
       "-1",
-      "Software\\Classes\\CADCraft.Drawing\\shell\\open\\command",
+      "Software\\Classes\\AutoCraft.Drawing\\shell\\open\\command",
       "",
-      "\"[#CadcraftExe]\" \"%1\""
+      "\"[#AutocraftExe]\" \"%1\""
     ],
     [
       "-1",
-      "Software\\Learning Machines LLC\\CADCraft",
+      "Software\\Learning Machines LLC\\AutoCraft",
       "DesktopShortcut",
       "1"
     ]

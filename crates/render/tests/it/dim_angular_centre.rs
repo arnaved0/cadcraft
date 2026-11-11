@@ -1,9 +1,9 @@
 //! Angular extension lines stay with their legs when the arc is on the other side, and the
 //! DIMCEN centre mark is drawn only when the dimension line is outside the circle (issue #374).
 
-use cadcraft_doc::{DimKind, DimStyle, Dimension};
-use cadcraft_geom::{Vec2, Vec3};
-use cadcraft_render::{LineRole, dimension_geometry};
+use autocraft_doc::{DimKind, DimStyle, Dimension};
+use autocraft_geom::{Vec2, Vec3};
+use autocraft_render::{LineRole, dimension_geometry};
 
 fn dim(kind: DimKind) -> Dimension {
     Dimension {

@@ -1,8 +1,8 @@
 //! Properties in the Block Editor: with nothing selected it shows the edited block's name and
 //! description, and a description typed there is saved into the block by BSAVE.
 
-use cadcraft_engine::Session;
-use cadcraft_ui_egui::{CadApp, Services};
+use autocraft_engine::Session;
+use autocraft_ui_egui::{CadApp, Services};
 use egui::{Key, vec2};
 use egui_kittest::Harness;
 use egui_kittest::kittest::{Queryable, by};
@@ -17,7 +17,7 @@ fn palettes() -> Harness<'static, CadApp> {
     let mut h = Harness::builder().with_size(vec2(400.0, 1400.0)).build_ui_state(
         |ui, app: &mut CadApp| {
             app.logic(&ui.ctx().clone());
-            cadcraft_ui_egui::palettes::right_palettes(app, ui);
+            autocraft_ui_egui::palettes::right_palettes(app, ui);
         },
         app,
     );

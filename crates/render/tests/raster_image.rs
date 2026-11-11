@@ -3,11 +3,11 @@
 
 use std::sync::Arc;
 
-use cadcraft_color::Rgb;
-use cadcraft_doc::{Block, Common, Drawing, Entity, EntityKind, Handle, Image, Insert, Line, Raster, Space, Transparency, Viewport};
-use cadcraft_geom::{Vec2, Vec3};
-use cadcraft_render::raster::{RasterOptions, View, render};
-use cadcraft_render::{Kind, Options, build};
+use autocraft_color::Rgb;
+use autocraft_doc::{Block, Common, Drawing, Entity, EntityKind, Handle, Image, Insert, Line, Raster, Space, Transparency, Viewport};
+use autocraft_geom::{Vec2, Vec3};
+use autocraft_render::raster::{RasterOptions, View, render};
+use autocraft_render::{Kind, Options, build};
 
 const RED: [u8; 4] = [255, 0, 0, 255];
 const GREEN: [u8; 4] = [0, 255, 0, 255];

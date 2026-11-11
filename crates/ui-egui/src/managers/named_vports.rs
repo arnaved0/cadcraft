@@ -3,8 +3,8 @@
 //! `vports.named` in the Model tab; in a layout it starts MVIEW Restore with the name, so the
 //! viewports' corners are picked next. Delete runs `vports.named` with `delete`.
 
-use cadcraft_doc::{Space, VportConfig, VportTile};
-use cadcraft_engine::Input;
+use autocraft_doc::{Space, VportConfig, VportTile};
+use autocraft_engine::Input;
 use egui::{RichText, Sense, Stroke, vec2};
 use serde_json::{Value, json};
 

@@ -106,7 +106,7 @@ fn application_menu(app: &mut CadApp, ui: &mut egui::Ui, rect: Rect) {
     let resp = ui.interact(rect, ui.scope_id().with("app_menu"), Sense::click());
     let fill = if resp.hovered() { t.accent } else { t.accent.gamma_multiply(0.85) };
     ui.painter().rect_filled(rect, 3.0, fill);
-    // Three bars and a drafting-compass point: CADCraft's own mark for the menu.
+    // Three bars and a drafting-compass point: AutoCraft's own mark for the menu.
     let c = rect.center() - vec2(4.0, 0.0);
     for dy in [-4.0, 0.0, 4.0] {
         ui.painter().hline((c.x - 6.0)..=(c.x + 6.0), c.y + dy, Stroke::new(1.6, egui::Color32::WHITE));
@@ -249,8 +249,8 @@ pub fn title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
         }
         if app.integrated_titlebar {
             let title = match app.session.state() {
-                Ok(st) if !app.ui.start_tab => format!("CADCraft      {}{}", st.title, if st.title.contains('.') { "" } else { ".dwg" }),
-                _ => format!("CADCraft      {}", crate::tl!("Start")),
+                Ok(st) if !app.ui.start_tab => format!("AutoCraft      {}{}", st.title, if st.title.contains('.') { "" } else { ".dwg" }),
+                _ => format!("AutoCraft      {}", crate::tl!("Start")),
             };
             // Centred on the traffic lights' centre line (the row's middle): with the system font
             // the capitals' middle is the text box's middle, so no optical nudge.
@@ -275,8 +275,8 @@ fn classic_title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
             // The empty row moves the window; it goes first so later widgets take their own clicks.
             craft_window::title_bar::empty_area(ui, Rect::from_min_size(r.min, vec2(r.width(), title_h)));
             let title = match app.session.state() {
-                Ok(st) if !app.ui.start_tab => format!("CADCraft      {}{}", st.title, if st.title.contains('.') { "" } else { ".dwg" }),
-                _ => format!("CADCraft      {}", crate::tl!("Start")),
+                Ok(st) if !app.ui.start_tab => format!("AutoCraft      {}{}", st.title, if st.title.contains('.') { "" } else { ".dwg" }),
+                _ => format!("AutoCraft      {}", crate::tl!("Start")),
             };
             // Centred on the traffic lights' centre line (the row's middle): with the system font
             // the capitals' middle is the text box's middle, so no optical nudge.
@@ -568,7 +568,7 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
         // Right side: toggles, right-aligned.
         let s = app.session.settings.clone();
         let anno_all = app.session.doc().is_ok_and(|d| d.anno_all_visible());
-        use cadcraft_engine::snap::mode;
+        use autocraft_engine::snap::mode;
         let toggles: Vec<(Icon, bool, &str, &str)> = vec![
             (Icon::Grid, s.gridmode, "grid", "Grid (F7)"),
             (Icon::Snap, s.snapmode, "snap", "Snap Mode (F9)"),
@@ -592,16 +592,16 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
             let (lu, lp) = app.session.doc().map(|d| (d.header.i64("LUNITS", 2), d.header.i64("LUPREC", 4))).unwrap_or((2, 4));
             format!(
                 "{}, {}, {}",
-                cadcraft_engine::units::format_distance(c.x, lu, lp),
-                cadcraft_engine::units::format_distance(c.y, lu, lp),
-                cadcraft_engine::units::format_distance(0.0, lu, lp)
+                autocraft_engine::units::format_distance(c.x, lu, lp),
+                autocraft_engine::units::format_distance(c.y, lu, lp),
+                autocraft_engine::units::format_distance(0.0, lu, lp)
             )
         });
         // MODEL / PAPER (layouts only): toggles MSPACE and PSPACE like AutoCAD's status button.
         let mut coord_right = rx - 8.0;
         // The annotation scale list (model space).
         coord_right = annoscale::status(app, ui, coord_right, r.center().y);
-        if matches!(app.session.layout_space(), cadcraft_doc::Space::Paper(_)) {
+        if matches!(app.session.layout_space(), autocraft_doc::Space::Paper(_)) {
             let model = app.session.state().is_ok_and(|st| st.mspace.is_some());
             let label = if model { "MODEL" } else { "PAPER" };
             let br = Rect::from_min_max(pos2(rx - 60.0, r.center().y - 9.0), pos2(rx - 6.0, r.center().y + 9.0));
@@ -621,8 +621,8 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
         // current one always); the layout list reaches the rest.
         let mut tabs: Vec<String> = vec!["Model".into()];
         let cur = app.session.state().map(|s| match &s.space {
-            cadcraft_doc::Space::Model => "Model".to_string(),
-            cadcraft_doc::Space::Paper(n) => n.clone(),
+            autocraft_doc::Space::Model => "Model".to_string(),
+            autocraft_doc::Space::Paper(n) => n.clone(),
         });
         if let Ok(st) = app.session.state() {
             let mut ls: Vec<_> = st.doc.layouts.iter().collect();
@@ -741,7 +741,7 @@ pub fn start_page(app: &mut CadApp, ui: &mut egui::Ui) {
     let left = Rect::from_min_size(r.min, vec2(300.0, r.height()));
     p.rect_filled(left, 0.0, t.chrome_dark);
     p.rect_filled(Rect::from_min_max(pos2(left.right(), r.top()), r.max), 0.0, t.chrome);
-    p.text(pos2(left.left() + 34.0, left.top() + 70.0), egui::Align2::LEFT_CENTER, crate::tl!("CADCraft"), egui::FontId::proportional(28.0), t.text);
+    p.text(pos2(left.left() + 34.0, left.top() + 70.0), egui::Align2::LEFT_CENTER, crate::tl!("AutoCraft"), egui::FontId::proportional(28.0), t.text);
     p.text(
         pos2(left.left() + 34.0, left.top() + 98.0),
         egui::Align2::LEFT_CENTER,

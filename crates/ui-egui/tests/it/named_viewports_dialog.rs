@@ -2,8 +2,8 @@
 //! configurations: Restore shows one in the Model tab or starts placing it in a layout, and Delete
 //! deletes it.
 
-use cadcraft_engine::Session;
-use cadcraft_ui_egui::{CadApp, Services, dialogs, menus};
+use autocraft_engine::Session;
+use autocraft_ui_egui::{CadApp, Services, dialogs, menus};
 use egui::vec2;
 use egui_kittest::Harness;
 use egui_kittest::kittest::Queryable;

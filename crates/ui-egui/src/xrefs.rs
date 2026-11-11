@@ -16,7 +16,7 @@ pub fn route(app: &mut CadApp, id: &str, params: &Value) -> Option<Result<Value,
     if !params.is_null() {
         return None;
     }
-    match cadcraft_engine::cmd::resolve_alias(id).as_str() {
+    match autocraft_engine::cmd::resolve_alias(id).as_str() {
         "xref" => Some(open_palette(app)),
         "xattach" => {
             app.services.pick_open.as_ref()?;
@@ -28,7 +28,7 @@ pub fn route(app: &mut CadApp, id: &str, params: &Value) -> Option<Result<Value,
                 // path is attacker-controlled (the file picker returns whatever the user
                 // selected), and `cmdline` interprets command syntax, so a name like `'closeall`
                 // would run an engine command instead of naming the file (CWE-74).
-                app.session.input(cadcraft_engine::Input::Text(path)).map_err(|e| e.to_string())?;
+                app.session.input(autocraft_engine::Input::Text(path)).map_err(|e| e.to_string())?;
                 Ok(Value::Null)
             })
         }
@@ -83,9 +83,9 @@ fn rows(app: &CadApp, ui: &egui::Ui) -> Vec<Row> {
         for (k, b) in xrefs.iter().enumerate() {
             index.entry(b.name.to_ascii_uppercase()).or_insert(k);
         }
-        let mut count = |store: &cadcraft_engine::doc::EntityStore| {
+        let mut count = |store: &autocraft_engine::doc::EntityStore| {
             for e in store.iter() {
-                if let cadcraft_engine::doc::EntityKind::Insert(i) = &e.kind
+                if let autocraft_engine::doc::EntityKind::Insert(i) = &e.kind
                     && let Some(&k) = index.get(&i.block.to_ascii_uppercase())
                     && let Some(c) = counts.get_mut(k)
                 {
@@ -101,7 +101,7 @@ fn rows(app: &CadApp, ui: &egui::Ui) -> Vec<Row> {
         .iter()
         .zip(counts)
         .map(|(b, references)| {
-            let loaded = b.xref_status == cadcraft_engine::doc::XrefStatus::Loaded;
+            let loaded = b.xref_status == autocraft_engine::doc::XrefStatus::Loaded;
             Row {
                 name: b.name.clone(),
                 status: if loaded && references == 0 { "Unreferenced".into() } else { b.xref_status.label().into() },
