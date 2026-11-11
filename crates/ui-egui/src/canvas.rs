@@ -543,8 +543,13 @@ fn paint_pointer_overlay(
     }
     if sheet.is_none() {
         widgets::navigation_bar(app, ui, rect);
+        widgets::viewport_controls(app, ui, rect);
+    } else {
+        viewport_label(painter, rect);
     }
-    viewport_label(painter, rect);
+    if app.ui.show_ribbon {
+        widgets::drawing_close(app, ui, rect);
+    }
     // Typing and Escape reach the command line even when its overlay is hidden.
     crate::cmdline::keyboard(app, ui.ctx());
     // Command line overlay.

@@ -169,7 +169,9 @@ fn an_image_among_many_objects_keeps_its_pixels() {
 }
 
 fn drawn_images(s: &Session) -> usize {
-    autocraft_engine::render::build(s.doc().unwrap(), &autocraft_engine::doc::Space::Model, &autocraft_engine::render::Options::default()).images.len()
+    autocraft_engine::render::build(s.doc().unwrap(), &autocraft_engine::doc::Space::Model, &autocraft_engine::render::Options::default())
+        .images
+        .len()
 }
 
 #[test]

@@ -126,6 +126,10 @@ pub struct Tokens {
     pub paper: Color32,
     /// The quick access bar and the ribbon's tab row along the top of the window.
     pub title_bar: Color32,
+    /// The command line's input field and its text.
+    pub cmd_input: Color32,
+    pub cmd_ink: Color32,
+    pub cmd_ink_faint: Color32,
 }
 
 impl Tokens {
@@ -175,6 +179,9 @@ impl Tokens {
         crosshair: Color32::from_rgb(0xe8, 0xe8, 0xe8),
         paper: Color32::WHITE,
         title_bar: Color32::from_rgb(0x26, 0x2c, 0x35),
+        cmd_input: Color32::from_rgb(0xc8, 0xcc, 0xd2),
+        cmd_ink: Color32::from_rgb(0x1e, 0x22, 0x28),
+        cmd_ink_faint: Color32::from_rgb(0x5c, 0x63, 0x6d),
     };
 
     /// Light grey chrome with dark text. The drawing-area colours (canvas, grid, axes, selection,
@@ -206,6 +213,7 @@ impl Tokens {
         list_row: Color32::from_rgb(0xe3, 0xe8, 0xef),
         warn: Color32::from_rgb(0x8a, 0x53, 0x00),
         title_bar: Color32::from_rgb(0xd0, 0xd5, 0xdc),
+        cmd_input: Color32::from_rgb(0xff, 0xff, 0xff),
         ..Tokens::DARK
     };
 

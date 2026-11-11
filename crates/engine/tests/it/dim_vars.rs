@@ -119,7 +119,8 @@ fn text_fill_variables_are_style_overrides() {
     let h = s.doc().unwrap().model.last().unwrap().handle.hex();
     s.execute("explode", &json!({ "handles": [h] })).unwrap();
     let d = s.doc().unwrap();
-    let solid = d.model.iter().position(|e| matches!(e.kind, EntityKind::Solid(_)) && e.common.color == autocraft_engine::doc::color::Color::Index(3));
+    let solid =
+        d.model.iter().position(|e| matches!(e.kind, EntityKind::Solid(_)) && e.common.color == autocraft_engine::doc::color::Color::Index(3));
     let mtext = d.model.iter().position(|e| matches!(e.kind, EntityKind::MText(_)));
     assert!(solid.is_some() && solid < mtext, "{solid:?}, {mtext:?}");
     // The arrowheads (the other SOLIDs) come before the background, as the dimension draws them.

@@ -563,7 +563,8 @@ mod tests {
     fn hit_testing_a_block_does_not_lay_out_its_dashes() {
         let (d, h) = dashed_block(20_000.0, 0.001);
         let e = d.entity(h).unwrap();
-        let drawn = autocraft_render::build_entities(&d, std::iter::once(e.as_ref()), &autocraft_render::Options { text: false, ..Default::default() });
+        let drawn =
+            autocraft_render::build_entities(&d, std::iter::once(e.as_ref()), &autocraft_render::Options { text: false, ..Default::default() });
         assert!(drawn.prims.len() > 10_000, "the pattern draws {} dashes", drawn.prims.len());
         // The line, and the block's bounding rectangle.
         assert_eq!(hit_polylines(&d, e, 0.01).len(), 2);
@@ -574,7 +575,8 @@ mod tests {
     fn a_dashed_line_in_a_block_is_picked_in_a_gap() {
         let (d, h) = dashed_block(100.0, 1.0);
         let e = d.entity(h).unwrap();
-        let drawn = autocraft_render::build_entities(&d, std::iter::once(e.as_ref()), &autocraft_render::Options { text: false, ..Default::default() });
+        let drawn =
+            autocraft_render::build_entities(&d, std::iter::once(e.as_ref()), &autocraft_render::Options { text: false, ..Default::default() });
         let (a, b) = (drawn.prims.first().unwrap(), drawn.prims.get(1).unwrap());
         let (end, start) = (*drawn.points(a).last().unwrap(), *drawn.points(b).first().unwrap());
         assert!(end.dist(start) > 0.01, "a gap between the first two dashes");

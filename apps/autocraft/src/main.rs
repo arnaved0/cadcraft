@@ -234,6 +234,9 @@ fn window_options(restoring: bool) -> eframe::NativeOptions {
             .with_fullsize_content_view(true)
             .with_titlebar_shown(false)
             .with_title_shown(false)
+            // Windows: the app draws the title bar (quick access bar, title, window buttons), as
+            // AutoCAD does; its edges still resize the window (`CadApp::resize_edges`).
+            .with_decorations(!cfg!(target_os = "windows"))
             .with_app_id(APP_ID),
         // The size, position and maximized state are kept between sessions (#2595); eframe keeps a
         // restored window on the monitors that are connected now.
@@ -409,6 +412,7 @@ fn main() -> eframe::Result {
                 app.session.set_lisp_support_dir(Some(support));
             }
             app.integrated_titlebar = cfg!(target_os = "macos");
+            app.caption_buttons = cfg!(target_os = "windows");
             if surface.present_mode == eframe::wgpu::PresentMode::AutoNoVsync {
                 app.frame_cap = Some(autocraft_ui_egui::gpu::FrameCap::new(240));
             }

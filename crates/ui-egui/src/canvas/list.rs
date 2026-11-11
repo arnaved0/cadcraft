@@ -53,7 +53,11 @@ pub(super) fn preview_options(scale: f64) -> autocraft_render::Options {
 /// command's rubber band and rebuilt copies of existing objects. They carry CLAYER's properties,
 /// not the objects', so they are drawn opaque (the GPU drag of the objects themselves keeps their
 /// transparency, see [`draw_drag_gpu`]).
-pub(super) fn rebuilt_preview<'a>(doc: &autocraft_doc::Drawing, ents: impl IntoIterator<Item = &'a autocraft_doc::Entity>, scale: f64) -> DisplayList {
+pub(super) fn rebuilt_preview<'a>(
+    doc: &autocraft_doc::Drawing,
+    ents: impl IntoIterator<Item = &'a autocraft_doc::Entity>,
+    scale: f64,
+) -> DisplayList {
     autocraft_render::build_entities(doc, ents, &preview_options(scale))
 }
 

@@ -86,7 +86,8 @@ fn read(path: &Path) -> Result<Option<UiState>, String> {
         Some(fields) => (fields.remove("docking"), fields.remove("dockingVersion")),
         None => (None, None),
     };
-    let current = version.and_then(|version| version.as_u64()).is_some_and(|version| version >= u64::from(autocraft_ui_egui::docking::LAYOUT_VERSION));
+    let current =
+        version.and_then(|version| version.as_u64()).is_some_and(|version| version >= u64::from(autocraft_ui_egui::docking::LAYOUT_VERSION));
     let mut ui: UiState = serde_json::from_value(fields).map_err(|error| format!("{}: invalid workspace: {error}", path.display()))?;
     if let Some(docking) = docking.filter(|_| current)
         && let Ok(docking) = serde_json::from_value::<autocraft_ui_egui::docking::Workspace>(docking)

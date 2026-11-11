@@ -483,6 +483,35 @@ fn handle(app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, bar: Rect) -> 
     handle
 }
 
+/// The prompt glyph at the start of the input field; it opens the recent commands, newest first.
+fn recent_button(app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, r: Rect, t: Tokens) {
+    let resp = ui.interact(r, ui.scope_id().with("cmd_recent"), Sense::click());
+    if resp.hovered() {
+        p.rect_filled(r, 2.0, t.cmd_keyword_hover);
+    }
+    p.text(pos2(r.left() + 3.0, r.center().y), egui::Align2::LEFT_CENTER, ">_", crate::theme::mono(), t.text);
+    let c = pos2(r.right() - 4.0, r.center().y + 1.0);
+    p.add(egui::Shape::convex_polygon(vec![c + vec2(-2.5, -1.2), c + vec2(2.5, -1.2), c + vec2(0.0, 1.8)], t.text, Stroke::NONE));
+    crate::icons::describe_control(ui, &resp, "Recent Commands", None, false);
+    let recent = app.session.recent_commands(12);
+    let mut pick = None;
+    egui::Popup::menu(&resp).show(|ui| {
+        if recent.is_empty() {
+            ui.weak(crate::tl!("No recent commands"));
+        }
+        for id in &recent {
+            if ui.button(id.to_ascii_uppercase()).clicked() {
+                pick = Some(id.clone());
+                ui.close();
+            }
+        }
+    });
+    if let Some(id) = pick {
+        app.cmd.buffer.clear();
+        app.start(&id);
+    }
+}
+
 /// Width of the command line's handle (grip, close, customize) at its left end.
 const HANDLE_W: f32 = 50.0;
 
@@ -513,9 +542,20 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
     p.rect_filled(bar, 3.0, t.cmd_bg);
     p.rect_stroke(bar, 3.0, Stroke::new(1.0, t.cmd_border), egui::StrokeKind::Inside);
     let handle = handle(app, ui, &p, bar);
-    // Prompt glyph.
-    p.text(pos2(handle.right() + 8.0, bar.center().y), egui::Align2::LEFT_CENTER, ">_", crate::theme::mono(), t.text_dim);
-    let mut x = handle.right() + 30.0;
+    // The input field: light, with dark text, as AutoCAD draws it.
+    let field = Rect::from_min_max(pos2(handle.right() + 1.0, bar.top() + 1.0), pos2(bar.right() - 1.0, bar.bottom() - 1.0));
+    p.rect_filled(field, egui::CornerRadius { nw: 0, sw: 0, ne: 2, se: 2 }, t.cmd_input);
+    let t0 = t;
+    let t = Tokens {
+        text: t.cmd_ink,
+        text_dim: t.cmd_ink_faint,
+        text_faint: t.cmd_ink_faint,
+        cmd_keyword: Tokens::LIGHT.cmd_keyword,
+        cmd_keyword_hover: Tokens::LIGHT.cmd_keyword_hover,
+        ..t
+    };
+    recent_button(app, ui, &p, Rect::from_min_size(pos2(handle.right() + 3.0, bar.top() + 2.0), vec2(26.0, h - 4.0)), t);
+    let mut x = handle.right() + 32.0;
     let prompt = app.session.current_prompt();
     let font = crate::theme::body();
     match &prompt {
@@ -616,12 +656,9 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
     let caret = Rect::from_min_size(pos2(caret_x + 1.0, bar.top() + 5.0), vec2(1.0, h - 10.0));
     app.cmd.ime_rect = Some((bar, caret));
     // History chevron.
-    crate::icons::paint(
-        &p,
-        Rect::from_center_size(pos2(bar.right() - 14.0, bar.center().y), vec2(14.0, 14.0)),
-        if app.cmd.expanded { crate::icons::Icon::ChevronDown } else { crate::icons::Icon::ChevronUp },
-        false,
-    );
+    let c = pos2(bar.right() - 14.0, bar.center().y);
+    let dy = if app.cmd.expanded { 2.0 } else { -2.0 };
+    p.line(vec![c + vec2(-4.0, -dy), c + vec2(0.0, dy), c + vec2(4.0, -dy)], Stroke::new(1.3, t.text));
     // AutoComplete list.
     if !app.session.prompting() {
         let sug = suggestions(&app.cmd.buffer);
@@ -634,21 +671,21 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
                 ),
                 vec2((bar.width() - 24.0).max(0.0), rh * sug.len() as f32),
             );
-            p.rect_filled(lr, 3.0, t.list_bg);
-            p.rect_stroke(lr, 3.0, Stroke::new(1.0, t.cmd_border), egui::StrokeKind::Inside);
+            p.rect_filled(lr, 3.0, t0.list_bg);
+            p.rect_stroke(lr, 3.0, Stroke::new(1.0, t0.cmd_border), egui::StrokeKind::Inside);
             for (i, s) in sug.iter().enumerate() {
                 let r = Rect::from_min_size(pos2(lr.left(), lr.top() + rh * i as f32), vec2(lr.width(), rh));
                 let resp = ui.interact(r, ui.scope_id().with(("sug", i)), Sense::click());
                 if resp.hovered() || i == 0 {
-                    p.rect_filled(r.shrink(1.0), 2.0, if resp.hovered() { t.cmd_keyword_hover } else { t.list_row });
+                    p.rect_filled(r.shrink(1.0), 2.0, if resp.hovered() { t0.cmd_keyword_hover } else { t0.list_row });
                 }
-                p.text(Pos2::new(r.left() + 8.0, r.center().y), egui::Align2::LEFT_CENTER, &s.display, crate::theme::body(), t.text);
+                p.text(Pos2::new(r.left() + 8.0, r.center().y), egui::Align2::LEFT_CENTER, &s.display, crate::theme::body(), t0.text);
                 p.text(
                     Pos2::new(r.right() - 8.0, r.center().y),
                     egui::Align2::RIGHT_CENTER,
                     crate::i18n::t(s.label),
                     crate::theme::small(),
-                    t.text_faint,
+                    t0.text_faint,
                 );
                 if resp.clicked() {
                     app.cmd.buffer.clear();

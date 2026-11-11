@@ -105,6 +105,14 @@ pub struct UiState {
     pub ribbon_tab: String,
     /// Only the ribbon's tab row shows; clicking a tab brings its panels back.
     pub ribbon_minimized: bool,
+    /// Split buttons' last-chosen variants: (button command, variant command).
+    pub ribbon_last: Vec<(String, String)>,
+    /// The navigation bar under the ViewCube.
+    pub show_navbar: bool,
+    /// Status bar buttons the user turned off in its customization menu (their commands).
+    pub status_hidden: Vec<String>,
+    /// While Clean Screen is on: whether Tool Sets and the palettes were showing before it.
+    pub clean_screen: Option<(bool, bool)>,
     pub show_file_tabs: bool,
     pub show_status_bar: bool,
     pub show_command_line: bool,
@@ -219,6 +227,10 @@ impl Default for UiState {
             show_ribbon: false,
             ribbon_tab: "Home".into(),
             ribbon_minimized: false,
+            ribbon_last: Vec::new(),
+            show_navbar: true,
+            clean_screen: None,
+            status_hidden: chrome::DEFAULT_STATUS_HIDDEN.iter().map(|s| (*s).to_string()).collect(),
             show_file_tabs: true,
             show_status_bar: true,
             show_command_line: true,
@@ -243,6 +255,39 @@ impl Default for UiState {
             last_lisp_dir: None,
             last_pgp_dir: None,
         }
+    }
+}
+
+/// Without a system title bar and frame (Windows), the window's outer few points resize it: the
+/// pointer shows the resize cursor there and a press starts the system's resize.
+fn resize_edges(ctx: &egui::Context) {
+    use egui::ResizeDirection as D;
+    const EDGE: f32 = 5.0;
+    if ctx.input(|i| i.viewport().maximized.unwrap_or(false) || i.viewport().fullscreen.unwrap_or(false)) {
+        return;
+    }
+    let Some(p) = ctx.pointer_hover_pos() else { return };
+    let r = ctx.content_rect();
+    let (w, e, n, s) = (p.x < r.left() + EDGE, p.x > r.right() - EDGE, p.y < r.top() + EDGE, p.y > r.bottom() - EDGE);
+    let dir = match (w, e, n, s) {
+        (true, _, true, _) => D::NorthWest,
+        (_, true, true, _) => D::NorthEast,
+        (true, _, _, true) => D::SouthWest,
+        (_, true, _, true) => D::SouthEast,
+        (true, ..) => D::West,
+        (_, true, ..) => D::East,
+        (_, _, true, _) => D::North,
+        (_, _, _, true) => D::South,
+        _ => return,
+    };
+    ctx.set_cursor_icon(match dir {
+        D::North | D::South => egui::CursorIcon::ResizeVertical,
+        D::East | D::West => egui::CursorIcon::ResizeHorizontal,
+        D::NorthWest | D::SouthEast => egui::CursorIcon::ResizeNwSe,
+        D::NorthEast | D::SouthWest => egui::CursorIcon::ResizeNeSw,
+    });
+    if ctx.input(|i| i.pointer.primary_pressed()) {
+        ctx.send_viewport_cmd(egui::ViewportCommand::BeginResize(dir));
     }
 }
 
@@ -320,6 +365,9 @@ pub struct CadApp {
     /// Drawings being read on worker threads ([`opening`]).
     pub opening: opening::Opening,
     pub integrated_titlebar: bool,
+    /// The app draws the window's title bar and its minimize, maximize and close buttons (Windows,
+    /// where the main window has no system title bar).
+    pub caption_buttons: bool,
     control_rx: Option<Receiver<ControlRequest>>,
     /// Fresh surface and identity snapshot (see [`capture`]).
     pub(crate) capture_geometry: Option<capture::CaptureGeometry>,
@@ -414,6 +462,7 @@ impl CadApp {
             status: None,
             opening: opening::Opening::default(),
             integrated_titlebar: false,
+            caption_buttons: false,
             control_rx: None,
             capture_geometry: None,
             capture_epoch: 0,
@@ -1137,6 +1186,9 @@ impl CadApp {
         autosave::show(self, ui.ctx());
         autosave::gpu_notice(self, ui.ctx());
         autosave::failure_notice(self, ui.ctx());
+        if self.caption_buttons {
+            resize_edges(ui.ctx());
+        }
         self.frame_ms = now_ms() - t0;
     }
 

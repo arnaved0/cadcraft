@@ -2,7 +2,9 @@
 //! each family can fail independently without suppressing unrelated preservation checks.
 
 use autocraft_color::{Color, Rgb};
-use autocraft_doc::{Common, DashElement, Entity, EntityKind, HAlign, Handle, Layer, Line, Lineweight, RawTag, Text, TextStyle, Transparency, VAlign};
+use autocraft_doc::{
+    Common, DashElement, Entity, EntityKind, HAlign, Handle, Layer, Line, Lineweight, RawTag, Text, TextStyle, Transparency, VAlign,
+};
 use autocraft_geom::{Vec2, Vec3};
 
 use super::{Case, common_case, drawing, entity_case, text};

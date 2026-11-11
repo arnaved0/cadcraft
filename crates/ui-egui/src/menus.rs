@@ -98,6 +98,8 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("ui.animations", "Animation Effects", &[], None),
     ("ui.toggle.toolbar", "Tool Bar", &["Window", "Tool Bar"], None),
     ("ui.toggle.ribbon", "Ribbon", &["Window", "Ribbon"], None),
+    ("ui.toggle.navbar", "Navigation Bar", &["View", "Navigation Bar"], None),
+    ("ui.cleanscreen", "Clean Screen", &["View", "Clean Screen"], Some("Cmd+0")),
     ("ui.toggle.filetabs", "File Tab", &["Window", "File Tab"], None),
     ("ui.toggle.statusbar", "Status Bar", &["Window", "Status Bar"], None),
     ("ui.toggle.cmdline", "Command Line", &["Window", "Command Line"], Some("Cmd+9")),
@@ -280,6 +282,26 @@ fn run_ui_toggle_command(app: &mut CadApp, id: &str, params: &Value) -> Option<R
         "ui.toggle.palettes" => {
             toggle(&mut app.ui.show_palettes, params);
             Ok(Value::Null)
+        }
+        "ui.toggle.navbar" => {
+            toggle(&mut app.ui.show_navbar, params);
+            Ok(json!({ "on": app.ui.show_navbar }))
+        }
+        "ui.cleanscreen" => {
+            // Clean Screen clears the ribbon and palettes; the title bar, command line and status
+            // bar stay. Turning it off brings back what was showing.
+            match app.ui.clean_screen.take() {
+                Some((toolsets, palettes)) => {
+                    app.ui.show_toolsets = toolsets;
+                    app.ui.show_palettes = palettes;
+                }
+                None => {
+                    app.ui.clean_screen = Some((app.ui.show_toolsets, app.ui.show_palettes));
+                    app.ui.show_toolsets = false;
+                    app.ui.show_palettes = false;
+                }
+            }
+            Ok(json!({ "on": app.ui.clean_screen.is_some() }))
         }
         "ui.toggle.ribbon" => {
             // The ribbon comes and goes with its workspace (Tool Sets and palettes the other way).
@@ -912,6 +934,7 @@ pub(crate) fn builtin_shortcuts() -> Vec<(egui::KeyboardShortcut, &'static str)>
         (sc(cmd, Key::Num1), "ui.panel.properties"),
         (sc(cmd, Key::Num3), "ui.toggle.toolsets"),
         (sc(cmd, Key::Num9), "ui.toggle.cmdline"),
+        (sc(cmd, Key::Num0), "ui.cleanscreen"),
         (sc(Modifiers::NONE, Key::F1), "ui.dialog.commands"),
         (sc(Modifiers::NONE, Key::F2), "ui.toggle.history"),
         (sc(Modifiers::NONE, Key::F3), "osnap"),

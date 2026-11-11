@@ -31,10 +31,12 @@ pub enum Item {
     PropertyLists,
 }
 
-/// A ribbon panel: its title (shown under it) and contents.
+/// A ribbon panel: its title (shown under it), contents, and the slide-out under its title.
 pub struct Panel {
     pub name: &'static str,
     pub items: &'static [Item],
+    /// The tools of the panel's slide-out (the arrow beside its title); empty for none.
+    pub more: &'static [Tool],
 }
 
 /// A ribbon tab.
@@ -45,62 +47,210 @@ pub struct Tab {
 
 use Item::{Column, Icons, Large, LayerList, PropertyLists};
 
-/// The ribbon's tabs and panels.
+const fn panel(name: &'static str, items: &'static [Item], more: &'static [Tool]) -> Panel {
+    Panel { name, items, more }
+}
+
+/// Split buttons: a button whose command is listed here shows an arrow that opens these
+/// variants; the variant last chosen becomes the button's command (its first entry until then).
+pub const SPLITS: &[(&str, &[Tool])] = &[
+    (
+        "circle",
+        &[
+            (Icon::Circle, "circle", "Center, Radius"),
+            (Icon::Circle, "circle.cd", "Center, Diameter"),
+            (Icon::Circle, "circle.2p", "2-Point"),
+            (Icon::Circle, "circle.3p", "3-Point"),
+            (Icon::Circle, "circle.ttr", "Tan, Tan, Radius"),
+            (Icon::Circle, "circle.ttt", "Tan, Tan, Tan"),
+        ],
+    ),
+    (
+        "arc",
+        &[
+            (Icon::Arc, "arc", "3-Point"),
+            (Icon::Arc, "arc.sce", "Start, Center, End"),
+            (Icon::Arc, "arc.sca", "Start, Center, Angle"),
+            (Icon::Arc, "arc.scl", "Start, Center, Length"),
+            (Icon::Arc, "arc.sea", "Start, End, Angle"),
+            (Icon::Arc, "arc.sed", "Start, End, Direction"),
+            (Icon::Arc, "arc.ser", "Start, End, Radius"),
+            (Icon::Arc, "arc.cse", "Center, Start, End"),
+            (Icon::Arc, "arc.csa", "Center, Start, Angle"),
+            (Icon::Arc, "arc.csl", "Center, Start, Length"),
+            (Icon::Arc, "arc.continue", "Continue"),
+        ],
+    ),
+    ("rectang", &[(Icon::Rectangle, "rectang", "Rectangle"), (Icon::Polygon, "polygon", "Polygon")]),
+    ("hatch", &[(Icon::Hatch, "hatch", "Hatch"), (Icon::Gradient, "gradient", "Gradient"), (Icon::Boundary, "boundary", "Boundary")]),
+    (
+        "ellipse",
+        &[(Icon::Ellipse, "ellipse", "Center"), (Icon::Ellipse, "ellipse.axis", "Axis, End"), (Icon::Ellipse, "ellipse.arc", "Elliptical Arc")],
+    ),
+    ("spline", &[(Icon::Spline, "spline", "Spline Fit"), (Icon::Spline, "spline.cv", "Spline CV")]),
+    ("trim", &[(Icon::Trim, "trim", "Trim"), (Icon::Extend, "extend", "Extend")]),
+    ("fillet", &[(Icon::Fillet, "fillet", "Fillet"), (Icon::Chamfer, "chamfer", "Chamfer"), (Icon::Spline, "blend", "Blend Curves")]),
+    (
+        "arrayrect",
+        &[
+            (Icon::ArrayRect, "arrayrect", "Rectangular Array"),
+            (Icon::Spline, "arraypath", "Path Array"),
+            (Icon::ArrayPolar, "arraypolar", "Polar Array"),
+        ],
+    ),
+    ("mtext", &[(Icon::MText, "mtext", "Multiline Text"), (Icon::Text, "text", "Single Line")]),
+    (
+        "dim",
+        &[
+            (Icon::DimLinear, "dim", "Dimension"),
+            (Icon::DimLinear, "dimlinear", "Linear"),
+            (Icon::DimAligned, "dimaligned", "Aligned"),
+            (Icon::DimAngular, "dimangular", "Angular"),
+            (Icon::DimArc, "dimarc", "Arc Length"),
+            (Icon::DimRadius, "dimradius", "Radius"),
+            (Icon::DimDiameter, "dimdiameter", "Diameter"),
+            (Icon::DimOrdinate, "dimordinate", "Ordinate"),
+        ],
+    ),
+    (
+        "dimlinear",
+        &[
+            (Icon::DimLinear, "dimlinear", "Linear"),
+            (Icon::DimAligned, "dimaligned", "Aligned"),
+            (Icon::DimAngular, "dimangular", "Angular"),
+            (Icon::DimArc, "dimarc", "Arc Length"),
+            (Icon::DimRadius, "dimradius", "Radius"),
+            (Icon::DimDiameter, "dimdiameter", "Diameter"),
+            (Icon::DimOrdinate, "dimordinate", "Ordinate"),
+        ],
+    ),
+    ("dimcontinue", &[(Icon::DimContinue, "dimcontinue", "Continue"), (Icon::DimBaseline, "dimbaseline", "Baseline")]),
+    (
+        "mleader",
+        &[
+            (Icon::MLeader, "mleader", "Multileader"),
+            (Icon::AddLeader, "mleaderedit", "Add Leader"),
+            (Icon::RemoveLeader, "mleaderedit.remove", "Remove Leader"),
+        ],
+    ),
+    ("insert", &[(Icon::Insert, "insert", "Insert"), (Icon::Blocks, "ui.dialog.blocks", "Blocks Palette")]),
+    ("attedit", &[(Icon::AttDef, "attedit", "Single"), (Icon::AttDef, "eattext", "Extract Data")]),
+    ("measuregeom", &[(Icon::Measure, "measuregeom", "Measure"), (Icon::Distance, "dist", "Distance"), (Icon::Area, "area", "Area")]),
+    (
+        "pasteclip",
+        &[
+            (Icon::Paste, "pasteclip", "Paste"),
+            (Icon::Paste, "pasteblock", "Paste as Block"),
+            (Icon::Paste, "pasteorig", "Paste to Original Coordinates"),
+        ],
+    ),
+    ("copyclip", &[(Icon::Copy, "copyclip", "Copy Clip"), (Icon::Copy, "copybase", "Copy with Base Point")]),
+    (
+        "zoom.extents",
+        &[
+            (Icon::ZoomExtents, "zoom.extents", "Zoom Extents"),
+            (Icon::ZoomWindow, "zoom.window", "Zoom Window"),
+            (Icon::ZoomFit, "zoom.previous", "Zoom Previous"),
+            (Icon::ZoomIn, "zoom.realtime", "Zoom Realtime"),
+            (Icon::ZoomFit, "zoom.all", "Zoom All"),
+            (Icon::ZoomIn, "zoom.in", "Zoom In"),
+            (Icon::ZoomOut, "zoom.out", "Zoom Out"),
+        ],
+    ),
+    (
+        "vports",
+        &[
+            (Icon::Grid, "vports.1", "Single"),
+            (Icon::Grid, "vports.2", "Two: Vertical"),
+            (Icon::Grid, "vports.3", "Three: Right"),
+            (Icon::Grid, "vports.4", "Four: Equal"),
+            (Icon::Grid, "vports", "Viewport Configuration..."),
+        ],
+    ),
+    ("isolateobjects", &[(Icon::LayerIso, "isolateobjects", "Isolate Objects"), (Icon::LayerOff, "hideobjects", "Hide Objects")]),
+];
+
+/// The ribbon's tabs and panels, grouped as in AutoCAD's Drafting & Annotation workspace.
 pub const TABS: &[Tab] = &[
     Tab {
         name: "Home",
         panels: &[
-            Panel {
-                name: "Draw",
-                items: &[
+            panel(
+                "Draw",
+                &[
                     Large((Icon::Line, "line", "Line")),
                     Large((Icon::Polyline, "pline", "Polyline")),
                     Large((Icon::Circle, "circle", "Circle")),
                     Large((Icon::Arc, "arc", "Arc")),
                     Icons(&[
                         (Icon::Rectangle, "rectang", "Rectangle"),
-                        (Icon::Ellipse, "ellipse", "Ellipse"),
                         (Icon::Hatch, "hatch", "Hatch"),
-                        (Icon::Polygon, "polygon", "Polygon"),
                         (Icon::Spline, "spline", "Spline"),
-                        (Icon::Gradient, "gradient", "Gradient"),
+                        (Icon::Ellipse, "ellipse", "Ellipse"),
                         (Icon::XLine, "xline", "Construction Line"),
-                        (Icon::Point, "point.multiple", "Multiple Point"),
-                        (Icon::RevCloud, "revcloud", "Revision Cloud"),
+                        (Icon::Point, "point.multiple", "Multiple Points"),
                     ]),
                 ],
-            },
-            Panel {
-                name: "Modify",
-                items: &[
+                &[
+                    (Icon::Ray, "ray", "Ray"),
+                    (Icon::Point, "divide", "Divide"),
+                    (Icon::Point, "measure", "Measure"),
+                    (Icon::Boundary, "boundary", "Boundary"),
+                    (Icon::Region, "region", "Region"),
+                    (Icon::Wipeout, "wipeout", "Wipeout"),
+                    (Icon::RevCloud, "revcloud", "Revision Cloud"),
+                    (Icon::Donut, "donut", "Donut"),
+                ],
+            ),
+            panel(
+                "Modify",
+                &[
                     Column(&[(Icon::Move, "move", "Move"), (Icon::Copy, "copy", "Copy"), (Icon::Stretch, "stretch", "Stretch")]),
                     Column(&[(Icon::Rotate, "rotate", "Rotate"), (Icon::Mirror, "mirror", "Mirror"), (Icon::Scale, "scale", "Scale")]),
                     Column(&[(Icon::Trim, "trim", "Trim"), (Icon::Fillet, "fillet", "Fillet"), (Icon::ArrayRect, "arrayrect", "Array")]),
-                    Icons(&[
-                        (Icon::Erase, "erase", "Erase"),
-                        (Icon::Explode, "explode", "Explode"),
-                        (Icon::Offset, "offset", "Offset"),
-                        (Icon::Extend, "extend", "Extend"),
-                        (Icon::Chamfer, "chamfer", "Chamfer"),
-                        (Icon::Break, "break", "Break"),
-                        (Icon::Join, "join", "Join"),
-                        (Icon::Lengthen, "lengthen", "Lengthen"),
-                        (Icon::ArrayPolar, "arraypolar", "Polar Array"),
-                    ]),
+                    Icons(&[(Icon::Erase, "erase", "Erase"), (Icon::Explode, "explode", "Explode"), (Icon::Offset, "offset", "Offset")]),
                 ],
-            },
-            Panel {
-                name: "Annotation",
-                items: &[
+                &[
+                    (Icon::Break, "break", "Break"),
+                    (Icon::Join, "join", "Join"),
+                    (Icon::Lengthen, "lengthen", "Lengthen"),
+                    (Icon::Polyline, "pedit", "Edit Polyline"),
+                    (Icon::Spline, "splinedit", "Edit Spline"),
+                    (Icon::Move, "align", "Align"),
+                    (Icon::Join, "overkill", "Delete Duplicate Objects"),
+                    (Icon::MoveTop, "draworder", "Draw Order"),
+                ],
+            ),
+            panel(
+                "Annotation",
+                &[
                     Large((Icon::MText, "mtext", "Text")),
-                    Large((Icon::DimLinear, "dimlinear", "Dimension")),
-                    Column(&[(Icon::MLeader, "mleader", "Leader"), (Icon::Table, "table", "Table"), (Icon::Text, "text", "Single Line")]),
+                    Large((Icon::DimLinear, "dim", "Dimension")),
+                    Column(&[(Icon::MLeader, "mleader", "Leader"), (Icon::Table, "table", "Table")]),
                 ],
-            },
-            Panel { name: "Layers", items: &[Large((Icon::LayerProps, "ui.dialog.layers", "Layer Properties")), LayerList] },
-            Panel {
-                name: "Block",
-                items: &[
+                &[
+                    (Icon::TextStyle, "style", "Text Style"),
+                    (Icon::DimStyle, "dimstyle", "Dimension Style"),
+                    (Icon::MLeader, "mleaderstyle", "Multileader Style"),
+                    (Icon::Table, "tablestyle", "Table Style"),
+                ],
+            ),
+            panel(
+                "Layers",
+                &[Large((Icon::LayerProps, "ui.dialog.layers", "Layer Properties")), LayerList],
+                &[
+                    (Icon::Bulb, "layon", "Turn All Layers On"),
+                    (Icon::Sun, "laythw", "Thaw All Layers"),
+                    (Icon::LayerIso, "layuniso", "Unisolate"),
+                    (Icon::Unlock, "layulk", "Unlock"),
+                    (Icon::LayerMatch, "laymrg", "Merge"),
+                    (Icon::Erase, "laydel", "Delete"),
+                    (Icon::MakeCurrent, "laycur", "Change to Current Layer"),
+                ],
+            ),
+            panel(
+                "Block",
+                &[
                     Large((Icon::Insert, "insert", "Insert")),
                     Column(&[
                         (Icon::BlockCreate, "block", "Create"),
@@ -108,110 +258,157 @@ pub const TABS: &[Tab] = &[
                         (Icon::AttDef, "attedit", "Edit Attributes"),
                     ]),
                 ],
-            },
-            Panel { name: "Properties", items: &[Large((Icon::MatchProp, "matchprop", "Match Properties")), PropertyLists] },
-            Panel {
-                name: "Groups",
-                items: &[
+                &[
+                    (Icon::AttDef, "attdef", "Define Attributes"),
+                    (Icon::AttDef, "battman", "Manage Attributes"),
+                    (Icon::BlockCreate, "wblock", "Write Block"),
+                ],
+            ),
+            panel(
+                "Properties",
+                &[Large((Icon::MatchProp, "matchprop", "Match Properties")), PropertyLists],
+                &[(Icon::List, "list", "List"), (Icon::Properties, "ui.panel.properties", "Properties Palette")],
+            ),
+            panel(
+                "Groups",
+                &[
                     Large((Icon::Group, "group", "Group")),
                     Icons(&[(Icon::Ungroup, "ungroup", "Ungroup"), (Icon::BlockEdit, "groupedit", "Group Edit")]),
                 ],
-            },
-            Panel {
-                name: "Utilities",
-                items: &[
-                    Large((Icon::Measure, "measuregeom", "Measure")),
-                    Icons(&[
-                        (Icon::QuickSelect, "qselect", "Quick Select"),
-                        (Icon::SelectObjects, "selectall", "Select All"),
-                        (Icon::List, "list", "List"),
-                    ]),
+                &[],
+            ),
+            panel(
+                "Utilities",
+                &[Large((Icon::Measure, "measuregeom", "Measure"))],
+                &[
+                    (Icon::QuickSelect, "qselect", "Quick Select"),
+                    (Icon::SelectObjects, "selectall", "Select All"),
+                    (Icon::Point, "id", "ID Point"),
+                    (Icon::Area, "ui.toggle.quickcalc", "QuickCalc"),
                 ],
-            },
-            Panel {
-                name: "Clipboard",
-                items: &[Large((Icon::Paste, "pasteclip", "Paste")), Icons(&[(Icon::Cut, "cutclip", "Cut"), (Icon::Copy, "copyclip", "Copy Clip")])],
-            },
-            Panel {
-                name: "View",
-                items: &[
-                    Large((Icon::ZoomExtents, "zoom.extents", "Extents")),
-                    Icons(&[(Icon::Pan, "pan", "Pan"), (Icon::ZoomWindow, "zoom.window", "Zoom Window"), (Icon::Orbit, "3dorbit", "Orbit")]),
-                ],
-            },
+            ),
+            panel(
+                "Clipboard",
+                &[Large((Icon::Paste, "pasteclip", "Paste")), Icons(&[(Icon::Cut, "cutclip", "Cut"), (Icon::Copy, "copyclip", "Copy Clip")])],
+                &[],
+            ),
+            panel("View", &[Large((Icon::ZoomExtents, "zoom.extents", "Zoom"))], &[(Icon::Pan, "pan", "Pan"), (Icon::Orbit, "3dorbit", "Orbit")]),
         ],
     },
     Tab {
         name: "Insert",
         panels: &[
-            Panel {
-                name: "Block",
-                items: &[
+            panel(
+                "Block",
+                &[
                     Large((Icon::Insert, "insert", "Insert")),
-                    Large((Icon::BlockCreate, "block", "Create Block")),
                     Column(&[
+                        (Icon::AttDef, "attedit", "Edit Attribute"),
+                        (Icon::AttDef, "battman", "Manage Attributes"),
                         (Icon::BlockEdit, "bedit", "Block Editor"),
-                        (Icon::AttDef, "attdef", "Define Attributes"),
-                        (Icon::AttDef, "attedit", "Edit Attributes"),
                     ]),
                 ],
-            },
-            Panel { name: "Reference", items: &[Large((Icon::Attach, "attach", "Attach")), Large((Icon::Blocks, "ui.dialog.blocks", "Blocks"))] },
-            Panel { name: "Import", items: &[Large((Icon::Import, "import", "Import"))] },
+                &[],
+            ),
+            panel(
+                "Block Definition",
+                &[
+                    Large((Icon::BlockCreate, "block", "Create Block")),
+                    Large((Icon::AttDef, "attdef", "Define Attributes")),
+                    Column(&[
+                        (Icon::AttDef, "battman", "Manage Attributes"),
+                        (Icon::BlockEdit, "bedit", "Block Editor"),
+                        (Icon::BlockCreate, "wblock", "Write Block"),
+                    ]),
+                ],
+                &[],
+            ),
+            panel(
+                "Reference",
+                &[
+                    Large((Icon::Attach, "attach", "Attach")),
+                    Column(&[
+                        (Icon::Attach, "xattach", "DWG Reference"),
+                        (Icon::Attach, "xclip", "Clip"),
+                        (Icon::Attach, "xref", "External References"),
+                    ]),
+                ],
+                &[],
+            ),
+            panel("Import", &[Large((Icon::Import, "import", "Import"))], &[]),
+            panel(
+                "Linking & Extraction",
+                &[
+                    Large((Icon::Table, "dataextraction", "Extract Data")),
+                    Column(&[(Icon::Table, "datalink", "Data Link"), (Icon::AttDef, "eattext", "Extract Attributes")]),
+                ],
+                &[],
+            ),
+            panel("Content", &[Large((Icon::Blocks, "ui.dialog.blocks", "Blocks"))], &[]),
         ],
     },
     Tab {
         name: "Annotate",
         panels: &[
-            Panel {
-                name: "Text",
-                items: &[
+            panel(
+                "Text",
+                &[
                     Large((Icon::MText, "mtext", "Multiline Text")),
                     Column(&[(Icon::Text, "text", "Single Line"), (Icon::Search, "find", "Find Text"), (Icon::TextStyle, "style", "Text Style")]),
                 ],
-            },
-            Panel {
-                name: "Dimensions",
-                items: &[
-                    Large((Icon::DimLinear, "dimlinear", "Linear")),
+                &[(Icon::MText, "txt2mtxt", "Text to Multiline Text"), (Icon::Text, "textedit", "Edit Text")],
+            ),
+            panel(
+                "Dimensions",
+                &[
+                    Large((Icon::DimLinear, "dim", "Dimension")),
                     Column(&[
-                        (Icon::DimAligned, "dimaligned", "Aligned"),
-                        (Icon::DimAngular, "dimangular", "Angular"),
-                        (Icon::DimArc, "dimarc", "Arc Length"),
-                    ]),
-                    Column(&[
-                        (Icon::DimRadius, "dimradius", "Radius"),
-                        (Icon::DimDiameter, "dimdiameter", "Diameter"),
-                        (Icon::DimOrdinate, "dimordinate", "Ordinate"),
+                        (Icon::DimLinear, "dimlinear", "Linear"),
+                        (Icon::QDim, "qdim", "Quick"),
+                        (Icon::DimContinue, "dimcontinue", "Continue"),
                     ]),
                     Icons(&[
-                        (Icon::QDim, "qdim", "Quick Dimension"),
-                        (Icon::DimContinue, "dimcontinue", "Continue"),
-                        (Icon::DimBaseline, "dimbaseline", "Baseline"),
                         (Icon::DimStyle, "dimstyle", "Dimension Style"),
+                        (Icon::Break, "dimbreak", "Break"),
+                        (Icon::DimBaseline, "dimspace", "Adjust Space"),
+                        (Icon::DimLinear, "dimjogline", "Jogged Linear"),
+                        (Icon::DimStyle, "tolerance", "Tolerance"),
+                        (Icon::DimStyle, "dimstyle.update", "Update"),
                     ]),
                 ],
-            },
-            Panel {
-                name: "Leaders",
-                items: &[
+                &[],
+            ),
+            panel("Centerlines", &[Large((Icon::Circle, "centermark", "Center Mark")), Large((Icon::Line, "centerline", "Centerline"))], &[]),
+            panel(
+                "Leaders",
+                &[
                     Large((Icon::MLeader, "mleader", "Multileader")),
                     Column(&[
                         (Icon::AddLeader, "mleaderedit", "Add Leader"),
                         (Icon::RemoveLeader, "mleaderedit.remove", "Remove Leader"),
                         (Icon::AlignLeaders, "mleaderalign", "Align"),
                     ]),
+                    Icons(&[(Icon::MLeader, "mleadercollect", "Collect"), (Icon::MLeader, "mleaderstyle", "Multileader Style")]),
                 ],
-            },
-            Panel { name: "Tables", items: &[Large((Icon::Table, "table", "Table"))] },
+                &[],
+            ),
+            panel(
+                "Tables",
+                &[
+                    Large((Icon::Table, "table", "Table")),
+                    Column(&[(Icon::Table, "tablestyle", "Table Style"), (Icon::Table, "datalink", "Link Data")]),
+                ],
+                &[],
+            ),
+            panel("Markup", &[Large((Icon::RevCloud, "revcloud", "Revision Cloud")), Large((Icon::Wipeout, "wipeout", "Wipeout"))], &[]),
         ],
     },
     Tab {
         name: "Parametric",
         panels: &[
-            Panel {
-                name: "Geometric",
-                items: &[
+            panel(
+                "Geometric",
+                &[
                     Large((Icon::Constraint, "autoconstrain", "Auto Constrain")),
                     Icons(&[
                         (Icon::Coincident, "gccoincident", "Coincident"),
@@ -228,94 +425,165 @@ pub const TABS: &[Tab] = &[
                         (Icon::Equal, "gcequal", "Equal"),
                     ]),
                 ],
-            },
-            Panel {
-                name: "Dimensional",
-                items: &[
+                &[],
+            ),
+            panel(
+                "Dimensional",
+                &[
                     Large((Icon::DimLinear, "dclinear", "Linear")),
-                    Column(&[
-                        (Icon::DimAligned, "dcaligned", "Aligned"),
+                    Large((Icon::DimAligned, "dcaligned", "Aligned")),
+                    Icons(&[
                         (Icon::DimRadius, "dcradius", "Radius"),
                         (Icon::DimDiameter, "dcdiameter", "Diameter"),
+                        (Icon::DimAngular, "dcangular", "Angular"),
                     ]),
-                    Icons(&[(Icon::DimAngular, "dcangular", "Angular")]),
                 ],
-            },
-            Panel {
-                name: "Manage",
-                items: &[
-                    Large((Icon::DelConstraint, "delconstraint", "Delete Constraints")),
-                    Large((Icon::Parameters, "parameters", "Parameters Manager")),
-                ],
-            },
+                &[],
+            ),
+            panel(
+                "Manage",
+                &[Large((Icon::DelConstraint, "delconstraint", "Delete Constraints")), Large((Icon::Parameters, "parameters", "Parameters Manager"))],
+                &[],
+            ),
         ],
     },
     Tab {
         name: "View",
         panels: &[
-            Panel {
-                name: "Navigate",
-                items: &[
-                    Large((Icon::ZoomExtents, "zoom.extents", "Extents")),
-                    Column(&[(Icon::Pan, "pan", "Pan"), (Icon::ZoomWindow, "zoom.window", "Window"), (Icon::Orbit, "3dorbit", "Orbit")]),
-                    Icons(&[(Icon::ZoomIn, "zoom.in", "Zoom In"), (Icon::ZoomOut, "zoom.out", "Zoom Out"), (Icon::ZoomFit, "zoom.all", "Zoom All")]),
+            panel(
+                "Viewport Tools",
+                &[
+                    Large((Icon::Grid, "ui.toggle.ucsicon", "UCS Icon")),
+                    Large((Icon::Orbit, "ui.toggle.viewcube", "View Cube")),
+                    Large((Icon::Pan, "ui.toggle.navbar", "Navigation Bar")),
                 ],
-            },
-            Panel {
-                name: "Palettes",
-                items: &[
+                &[],
+            ),
+            panel(
+                "Model Viewports",
+                &[
+                    Large((Icon::Grid, "vports", "Viewport Configuration")),
+                    Column(&[(Icon::Grid, "vports.named", "Named"), (Icon::ZoomFit, "view", "Named Views")]),
+                ],
+                &[],
+            ),
+            panel(
+                "Palettes",
+                &[
+                    Large((Icon::Blocks, "ui.toggle.toolsets", "Tool Palettes")),
                     Large((Icon::Properties, "ui.panel.properties", "Properties")),
-                    Large((Icon::Layers, "ui.panel.layers", "Layers")),
                     Column(&[
-                        (Icon::Blocks, "ui.toggle.toolsets", "Tool Sets"),
+                        (Icon::Layers, "ui.panel.layers", "Layers"),
                         (Icon::Area, "ui.toggle.quickcalc", "QuickCalc"),
-                        (Icon::Blocks, "ui.dialog.blocks", "Blocks"),
+                        (Icon::Attach, "xref", "External References"),
                     ]),
                 ],
-            },
-            Panel {
-                name: "Interface",
-                items: &[Column(&[
-                    (Icon::Menu, "ui.toggle.filetabs", "File Tabs"),
-                    (Icon::Menu, "ui.toggle.statusbar", "Status Bar"),
-                    (Icon::Menu, "ui.toggle.menubar", "Menu Bar"),
-                ])],
-            },
-            Panel {
-                name: "Viewport Tools",
-                items: &[Column(&[(Icon::Orbit, "ui.toggle.viewcube", "View Cube"), (Icon::Grid, "ui.toggle.ucsicon", "UCS Icon")])],
-            },
+                &[],
+            ),
+            panel(
+                "Interface",
+                &[
+                    Large((Icon::Menu, "ui.toggle.filetabs", "File Tabs")),
+                    Column(&[
+                        (Icon::Menu, "ui.toggle.statusbar", "Status Bar"),
+                        (Icon::Menu, "ui.toggle.menubar", "Menu Bar"),
+                        (Icon::Menu, "ui.toggle.cmdline", "Command Line"),
+                    ]),
+                ],
+                &[],
+            ),
         ],
     },
     Tab {
         name: "Manage",
         panels: &[
-            Panel {
-                name: "Customization",
-                items: &[Large((Icon::Gear, "ui.shortcuts", "Keyboard Shortcuts")), Large((Icon::Gear, "options", "Options"))],
-            },
-            Panel {
-                name: "Cleanup",
-                items: &[Column(&[(Icon::Erase, "purge", "Purge"), (Icon::Search, "audit", "Audit"), (Icon::Join, "overkill", "Overkill")])],
-            },
+            panel(
+                "Customization",
+                &[
+                    Large((Icon::Gear, "ui.shortcuts", "User Interface")),
+                    Column(&[(Icon::Gear, "aliasedit", "Edit Aliases"), (Icon::Gear, "options", "Options")]),
+                ],
+                &[],
+            ),
+            panel("Applications", &[Large((Icon::Import, "appload", "Load Application")), Column(&[(Icon::List, "script", "Run Script")])], &[]),
+            panel(
+                "Cleanup",
+                &[Large((Icon::Erase, "purge", "Purge")), Column(&[(Icon::Join, "overkill", "Overkill"), (Icon::Search, "audit", "Audit")])],
+                &[],
+            ),
         ],
     },
     Tab {
         name: "Output",
         panels: &[
-            Panel {
-                name: "Plot",
-                items: &[
+            panel(
+                "Plot",
+                &[
                     Large((Icon::Plot, "plot", "Plot")),
                     Column(&[
                         (Icon::PageSetup, "pagesetup", "Page Setup Manager"),
+                        (Icon::Plot, "stylesmanager", "Plot Style Manager"),
                         (Icon::Preview, "preview", "Preview"),
-                        (Icon::Publish, "publish", "Batch Plot"),
                     ]),
+                    Icons(&[(Icon::Publish, "publish", "Batch Plot")]),
                 ],
-            },
-            Panel { name: "Export", items: &[Large((Icon::Export, "export", "Export")), Large((Icon::Share, "share", "Share"))] },
+                &[],
+            ),
+            panel("Export to DWF/PDF", &[Large((Icon::Export, "export", "Export"))], &[]),
         ],
+    },
+    Tab {
+        name: "Add-ins",
+        panels: &[panel("Applications", &[Large((Icon::Import, "appload", "Load Application")), Large((Icon::List, "script", "Run Script"))], &[])],
+    },
+    Tab {
+        name: "Collaborate",
+        panels: &[
+            panel("Share", &[Large((Icon::Share, "share", "Share"))], &[]),
+            panel("Compare", &[Large((Icon::Search, "compare", "DWG Compare"))], &[]),
+        ],
+    },
+    Tab {
+        name: "Express Tools",
+        panels: &[
+            panel(
+                "Text",
+                &[
+                    Large((Icon::MText, "txt2mtxt", "Convert to Mtext")),
+                    Column(&[(Icon::Text, "find", "Find"), (Icon::TextStyle, "style", "Text Style")]),
+                ],
+                &[],
+            ),
+            panel(
+                "Modify",
+                &[
+                    Large((Icon::Join, "overkill", "Delete Duplicate Objects")),
+                    Column(&[(Icon::Move, "align", "Align"), (Icon::Polyline, "pedit", "Edit Polyline")]),
+                ],
+                &[],
+            ),
+            panel(
+                "Layers",
+                &[
+                    Large((Icon::LayerMatch, "laymrg", "Layer Merge")),
+                    Column(&[(Icon::Erase, "laydel", "Layer Delete"), (Icon::LayerIso, "layiso", "Layer Isolate")]),
+                ],
+                &[],
+            ),
+            panel(
+                "Tools",
+                &[Large((Icon::List, "list", "List")), Column(&[(Icon::Point, "id", "ID Point"), (Icon::Area, "ui.toggle.quickcalc", "QuickCalc")])],
+                &[],
+            ),
+        ],
+    },
+    Tab {
+        name: "Featured Apps",
+        panels: &[panel(
+            "Apps",
+            &[Large((Icon::Help, "ui.dialog.commands", "Command Reference")), Large((Icon::Help, "ui.dialog.about", "About"))],
+            &[],
+        )],
     },
 ];
 
@@ -337,7 +605,7 @@ const PROPERTY_LISTS_W: f32 = 160.0;
 /// The height the ribbon takes: the tab row, and the panels unless the ribbon is minimized.
 pub fn height(app: &CadApp) -> f32 {
     // The Start page has no ribbon, as there is no drawing for its commands.
-    if !app.ui.show_ribbon || app.ui.start_tab || app.session.docs.is_empty() {
+    if !app.ui.show_ribbon || app.ui.clean_screen.is_some() || app.ui.start_tab || app.session.docs.is_empty() {
         0.0
     } else if app.ui.ribbon_minimized {
         TAB_H
@@ -388,13 +656,21 @@ enum Fit {
 
 fn item_width(p: &egui::Painter, item: &Item, compact: bool) -> f32 {
     match item {
-        Column(tools) if compact => tools.len().min(3).div_ceil(3) as f32 * ICON_CELL,
+        Column(tools) if compact => tools.len().min(3).div_ceil(3) as f32 * icon_cell(tools),
         Large((_, _, label)) => large_lines(label).iter().map(|l| text_w(p, l)).fold(LARGE_ICON, f32::max) + 10.0,
-        Column(tools) => tools.iter().map(|(_, _, l)| text_w(p, crate::i18n::t(l))).fold(0.0, f32::max) + SMALL_ICON + 14.0,
-        Icons(tools) => tools.len().div_ceil(3) as f32 * ICON_CELL,
+        Column(tools) => {
+            let arrows = if tools.iter().any(|t| variants(t.1).is_some()) { 12.0 } else { 0.0 };
+            tools.iter().map(|(_, _, l)| text_w(p, crate::i18n::t(l))).fold(0.0, f32::max) + SMALL_ICON + 14.0 + arrows
+        }
+        Icons(tools) => tools.len().div_ceil(3) as f32 * icon_cell(tools),
         LayerList => LAYER_LIST_W,
         PropertyLists => PROPERTY_LISTS_W,
     }
+}
+
+/// Width of one small icon button in a grid: wider when the grid holds split buttons.
+fn icon_cell(tools: &[Tool]) -> f32 {
+    if tools.iter().any(|t| variants(t.1).is_some()) { ICON_CELL + 10.0 } else { ICON_CELL }
 }
 
 fn panel_width(p: &egui::Painter, panel: &Panel, compact: bool) -> f32 {
@@ -428,6 +704,58 @@ fn fit(widths: &[(f32, f32, f32)], room: f32) -> Vec<Fit> {
         }
     }
     fits
+}
+
+/// The variants of a split button whose command is `cmd`.
+fn variants(cmd: &str) -> Option<&'static [Tool]> {
+    SPLITS.iter().find(|(main, _)| *main == cmd).map(|(_, v)| *v)
+}
+
+/// The tool a split button runs now: the variant chosen last, else `tool`.
+fn current(app: &CadApp, tool: Tool) -> Tool {
+    let Some(list) = variants(tool.1) else { return tool };
+    let chosen = app.ui.ribbon_last.iter().find(|(main, _)| main == tool.1).map(|(_, v)| v.as_str());
+    match chosen.and_then(|c| list.iter().find(|v| v.1 == c)) {
+        // The button keeps its own name; the icon and command follow the variant.
+        Some(v) => (v.0, v.1, tool.2),
+        None => tool,
+    }
+}
+
+/// Remember `variant` as split button `main`'s command.
+fn choose(app: &mut CadApp, main: &str, variant: &str) {
+    app.ui.ribbon_last.retain(|(m, _)| m != main);
+    if main != variant {
+        app.ui.ribbon_last.push((main.to_string(), variant.to_string()));
+    }
+}
+
+/// A small down arrow centred at `c`.
+fn arrow(p: &egui::Painter, c: egui::Pos2, color: Color32) {
+    p.add(egui::Shape::convex_polygon(vec![c + vec2(-3.0, -1.5), c + vec2(3.0, -1.5), c + vec2(0.0, 2.0)], color, Stroke::NONE));
+}
+
+/// The menu of a split button's variants under `resp`; a choice runs and is remembered.
+fn split_menu(app: &mut CadApp, resp: &egui::Response, main: &'static str, clicked: &mut Option<&'static str>) {
+    let Some(list) = variants(main) else { return };
+    let mut pick = None;
+    egui::Popup::menu(resp).show(|ui| {
+        ui.set_min_width(170.0);
+        for (icon, cmd, label) in list {
+            let known = command_known(cmd);
+            let r = ui.add_enabled(known, egui::Button::new(format!("      {}", crate::i18n::t(label))));
+            icons::paint(ui.painter(), Rect::from_center_size(pos2(r.rect.left() + 10.0, r.rect.center().y), vec2(14.0, 14.0)), *icon, !known);
+            icons::describe_control(ui, &r, label, None, false);
+            if r.clicked() {
+                pick = Some(*cmd);
+                ui.close();
+            }
+        }
+    });
+    if let Some(cmd) = pick {
+        choose(app, main, cmd);
+        *clicked = Some(cmd);
+    }
 }
 
 /// Tooltip text for a tool: its label and the command a user can type.
@@ -478,9 +806,6 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui) {
                 p.rect_filled(tr, 3.0, t.control.gamma_multiply(0.6));
             } else if resp.hovered() {
                 p.rect_filled(tr, 3.0, t.control.gamma_multiply(0.45));
-            }
-            if active {
-                p.hline(tr.x_range().shrink(6.0), tr.bottom() - 1.5, Stroke::new(2.0, t.accent));
             }
             p.text(tr.center(), Align2::CENTER_CENTER, label, crate::theme::body(), if active { t.text } else { t.text_dim });
             icons::describe_control(ui, &resp, tb.name, Some(active), true);
@@ -566,26 +891,54 @@ fn draw_panel(app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, panel: &Pa
         let w = item_width(p, item, compact);
         let id = ui.scope_id().with(("ribbon", panel.name, k));
         match item {
-            Large((icon, cmd, label)) => {
+            Large(tool) => {
+                let main = tool.1;
+                let (icon, cmd, label) = current(app, *tool);
                 let br = Rect::from_min_size(pos2(x, top), vec2(w, 3.0 * ROW_H));
-                let (resp, known) = hot(ui, br, id, cmd, label);
+                let split = variants(main).is_some();
+                // A split button: the icon runs the command, the label and arrow open the variants.
+                let top_r = if split { Rect::from_min_max(br.min, pos2(br.right(), br.top() + LARGE_ICON + 6.0)) } else { br };
+                let (resp, known) = hot(ui, top_r, id, cmd, label);
                 let ir = Rect::from_center_size(pos2(br.center().x, br.top() + 3.0 + LARGE_ICON / 2.0), vec2(LARGE_ICON, LARGE_ICON));
-                icons::paint(p, ir, *icon, !known);
+                icons::paint(p, ir, icon, !known);
                 let mut y = ir.bottom() + 2.0;
-                for line in large_lines(label) {
-                    p.text(pos2(br.center().x, y), Align2::CENTER_TOP, line, crate::theme::small(), if known { t.text } else { t.text_faint });
+                let lines = large_lines(label);
+                let n = lines.len();
+                for (k, line) in lines.into_iter().enumerate() {
+                    let g = p.layout_no_wrap(line, crate::theme::small(), if known { t.text } else { t.text_faint });
+                    let gx = br.center().x - g.size().x / 2.0 - if split && k + 1 == n { 4.0 } else { 0.0 };
+                    let gw = g.size().x;
+                    p.galley(pos2(gx, y), g, if known { t.text } else { t.text_faint });
+                    if split && k + 1 == n {
+                        arrow(p, pos2(gx + gw + 6.0, y + 7.0), t.text_dim);
+                    }
                     y += 13.0;
                 }
                 if resp.on_hover_text(tip(cmd, label)).clicked() {
                     *clicked = Some(cmd);
                 }
+                if split {
+                    let bottom = Rect::from_min_max(pos2(br.left(), top_r.bottom()), br.max);
+                    let (more, _) = hot(ui, bottom, id.with("split"), main, &format!("{label} options"));
+                    split_menu(app, &more, main, clicked);
+                }
             }
             Column(tools) if !compact => {
-                for (row, (icon, cmd, label)) in tools.iter().take(3).enumerate() {
-                    let br = Rect::from_min_size(pos2(x, top + row as f32 * ROW_H), vec2(w, ROW_H));
+                for (row, tool) in tools.iter().take(3).enumerate() {
+                    let main = tool.1;
+                    let (icon, cmd, label) = current(app, *tool);
+                    let full = Rect::from_min_size(pos2(x, top + row as f32 * ROW_H), vec2(w, ROW_H));
+                    let split = variants(main).is_some();
+                    let br = if split { Rect::from_min_max(full.min, pos2(full.right() - 12.0, full.bottom())) } else { full };
+                    if split {
+                        let ar = Rect::from_min_max(pos2(br.right(), full.top()), full.max);
+                        let (more, _) = hot(ui, ar, id.with(("split", row)), main, &format!("{label} options"));
+                        arrow(p, ar.center(), t.text_dim);
+                        split_menu(app, &more, main, clicked);
+                    }
                     let (resp, known) = hot(ui, br, id.with(row), cmd, label);
                     let ir = Rect::from_center_size(pos2(br.left() + 3.0 + SMALL_ICON / 2.0, br.center().y), vec2(SMALL_ICON, SMALL_ICON));
-                    icons::paint(p, ir, *icon, !known);
+                    icons::paint(p, ir, icon, !known);
                     p.text(
                         pos2(ir.right() + 5.0, br.center().y),
                         Align2::LEFT_CENTER,
@@ -599,11 +952,22 @@ fn draw_panel(app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, panel: &Pa
                 }
             }
             Icons(tools) | Column(tools) => {
-                for (n, (icon, cmd, label)) in tools.iter().enumerate() {
+                let cell = icon_cell(tools);
+                for (n, tool) in tools.iter().enumerate() {
+                    let main = tool.1;
+                    let (icon, cmd, label) = current(app, *tool);
                     let (col, row) = (n / 3, n % 3);
-                    let br = Rect::from_min_size(pos2(x + col as f32 * ICON_CELL, top + row as f32 * ROW_H), vec2(ICON_CELL - 2.0, ROW_H));
+                    let full = Rect::from_min_size(pos2(x + col as f32 * cell, top + row as f32 * ROW_H), vec2(cell - 2.0, ROW_H));
+                    let split = variants(main).is_some();
+                    let br = if split { Rect::from_min_max(full.min, pos2(full.right() - 10.0, full.bottom())) } else { full };
+                    if split {
+                        let ar = Rect::from_min_max(pos2(br.right(), full.top()), full.max);
+                        let (more, _) = hot(ui, ar, id.with(("split", n)), main, &format!("{label} options"));
+                        arrow(p, ar.center(), t.text_dim);
+                        split_menu(app, &more, main, clicked);
+                    }
                     let (resp, known) = hot(ui, br, id.with(n), cmd, label);
-                    icons::paint(p, Rect::from_center_size(br.center(), vec2(SMALL_ICON, SMALL_ICON)), *icon, !known);
+                    icons::paint(p, Rect::from_center_size(br.center(), vec2(SMALL_ICON, SMALL_ICON)), icon, !known);
                     if resp.on_hover_text(tip(cmd, label)).clicked() {
                         *clicked = Some(cmd);
                     }
@@ -614,7 +978,39 @@ fn draw_panel(app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, panel: &Pa
         }
         x += w + ITEM_GAP;
     }
-    panel_title(p, pr, panel.name, false);
+    slide_out(app, ui, p, panel, pr, clicked);
+}
+
+/// The panel's title strip; with a slide-out, the title opens it under the panel.
+fn slide_out(app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, panel: &Panel, pr: Rect, clicked: &mut Option<&'static str>) {
+    panel_title(p, pr, panel.name, !panel.more.is_empty());
+    if panel.more.is_empty() {
+        return;
+    }
+    let title = Rect::from_min_max(pos2(pr.left() + 1.0, pr.bottom() - TITLE_H), pos2(pr.right() - 1.0, pr.bottom()));
+    let resp = ui.interact(title, ui.scope_id().with(("ribbon_slide", panel.name)), Sense::click());
+    if resp.hovered() {
+        p.rect_stroke(title, 2.0, Stroke::new(1.0, Tokens::get().control_hover), egui::StrokeKind::Inside);
+    }
+    icons::describe_control(ui, &resp, &format!("{} panel", panel.name), None, false);
+    let mut pick = None;
+    egui::Popup::menu(&resp).show(|ui| {
+        ui.set_min_width(pr.width().max(180.0));
+        for (icon, cmd, label) in panel.more {
+            let known = command_known(cmd);
+            let r = ui.add_enabled(known, egui::Button::new(format!("      {}", crate::i18n::t(label))));
+            icons::paint(ui.painter(), Rect::from_center_size(pos2(r.rect.left() + 12.0, r.rect.center().y), vec2(15.0, 15.0)), *icon, !known);
+            icons::describe_control(ui, &r, label, None, false);
+            if r.clicked() {
+                pick = Some(*cmd);
+                ui.close();
+            }
+        }
+    });
+    if let Some(cmd) = pick {
+        *clicked = Some(cmd);
+    }
+    let _ = app;
 }
 
 /// A panel too wide for the window: one button with the panel's first icon that opens all of its
@@ -646,7 +1042,7 @@ fn draw_collapsed(_app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, panel
                 LayerList => vec![(Icon::LayerProps, "ui.dialog.layers", "Layer Properties")],
                 PropertyLists => vec![(Icon::Properties, "ui.panel.properties", "Properties")],
             };
-            for (_, cmd, label) in tools {
+            for (_, cmd, label) in tools.into_iter().chain(panel.more.iter().copied()) {
                 let b = ui.add_enabled(command_known(cmd), egui::Button::new(crate::i18n::t(label)));
                 crate::control::record_widget(ui, &b, label, "button", None);
                 if b.clicked() {
@@ -828,7 +1224,15 @@ mod tests {
                     };
                     missing.extend(tools.iter().filter(|(_, c, _)| !command_known(c)).map(|(_, c, _)| format!("{}/{}: {c}", tab.name, panel.name)));
                 }
+                for (_, c, _) in panel.more {
+                    if !command_known(c) {
+                        missing.push(format!("{}/{} slide-out: {c}", tab.name, panel.name));
+                    }
+                }
             }
+        }
+        for (main, list) in SPLITS {
+            missing.extend(list.iter().filter(|(_, c, _)| !command_known(c)).map(|(_, c, _)| format!("split {main}: {c}")));
         }
         assert!(missing.is_empty(), "unknown ribbon commands: {missing:?}");
     }

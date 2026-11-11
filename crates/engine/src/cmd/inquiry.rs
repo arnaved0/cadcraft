@@ -516,7 +516,8 @@ pub(super) fn object_area(s: &Session, h: Handle) -> Result<(f64, f64)> {
             let mut total = (0.0, 0.0);
             for (i, g) in geoms.iter().enumerate() {
                 let probe = polys.get(i).and_then(|p| p.first().copied());
-                let depth = probe.map_or(0, |pt| polys.iter().enumerate().filter(|(j, q)| *j != i && autocraft_geom::point_in_polygon(q, pt)).count());
+                let depth =
+                    probe.map_or(0, |pt| polys.iter().enumerate().filter(|(j, q)| *j != i && autocraft_geom::point_in_polygon(q, pt)).count());
                 total.0 += if depth % 2 == 0 { g.area().abs() } else { -g.area().abs() };
                 total.1 += g.len();
             }

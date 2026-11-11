@@ -154,7 +154,9 @@ pub(crate) fn block_text_box(d: &Drawing, be: &Entity, gap: f64) -> Option<Vec<V
 fn text_box(d: &Drawing, t: &autocraft_doc::Text, gap: f64) -> Option<Vec<Vec2>> {
     let (sh, _) = place_text_entity(d, t, &t.value);
     let rot = match (t.halign, t.align_pt) {
-        (autocraft_doc::HAlign::Aligned | autocraft_doc::HAlign::Fit, Some(p)) if p.xy().dist(t.insert.xy()) > 1e-12 => t.insert.xy().angle_to(p.xy()),
+        (autocraft_doc::HAlign::Aligned | autocraft_doc::HAlign::Fit, Some(p)) if p.xy().dist(t.insert.xy()) > 1e-12 => {
+            t.insert.xy().angle_to(p.xy())
+        }
         _ => t.rotation,
     };
     let (x, y) = (Vec2::from_angle(rot), Vec2::from_angle(rot).perp());

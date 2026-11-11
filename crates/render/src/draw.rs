@@ -325,7 +325,15 @@ fn draw_wipeout(b: &mut Builder, ctx: &Ctx, w: &autocraft_doc::Wipeout, rgb: Ink
     }
 }
 
-fn draw_dimension(b: &mut Builder, ctx: &Ctx, e: &Entity, dm: &autocraft_doc::Dimension, lw: f32, lt: Option<&autocraft_doc::Linetype>, ltscale: f64) {
+fn draw_dimension(
+    b: &mut Builder,
+    ctx: &Ctx,
+    e: &Entity,
+    dm: &autocraft_doc::Dimension,
+    lw: f32,
+    lt: Option<&autocraft_doc::Linetype>,
+    ltscale: f64,
+) {
     if let Some(blk) = dm.block.as_ref().and_then(|n| ctx.d.block(n))
         && ctx.depth < autocraft_doc::MAX_BLOCK_DEPTH
     {

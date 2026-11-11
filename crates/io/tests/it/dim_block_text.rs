@@ -112,9 +112,12 @@ fn dwg_angular_block_text_keeps_the_decimal_separator() {
     use autocraft_io::{SaveOptions, Version};
 
     for (separator_override, expected) in [(None, "39,4°"), (Some("."), "39.4°")] {
-        let dwg =
-            autocraft_io::write_with(&angular_drawing(separator_override), "angle.dwg", &SaveOptions { version: Some(Version::R2018), binary: false })
-                .unwrap();
+        let dwg = autocraft_io::write_with(
+            &angular_drawing(separator_override),
+            "angle.dwg",
+            &SaveOptions { version: Some(Version::R2018), binary: false },
+        )
+        .unwrap();
         // DWG consumers use the stored *D geometry: read it directly, without AutoCraft rendering it.
         let stored = acadrust::DwgReader::from_stream(Cursor::new(dwg)).read().unwrap();
         let texts: Vec<&str> = stored

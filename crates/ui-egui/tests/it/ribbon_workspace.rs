@@ -95,6 +95,10 @@ fn application_menu_holds_the_menus() {
     let mut h = harness(1600.0);
     h.get_by_label("Application Menu").click();
     h.run_steps(2);
+    h.get_by_label("Recent Documents");
+    h.get_by_label("Publish");
+    h.get_by_label("All Menus").click();
+    h.run_steps(2);
     h.get_by_label("File");
     h.get_by_label("Draw");
 }
@@ -103,11 +107,66 @@ fn application_menu_holds_the_menus() {
 fn workspace_switch_returns_to_tool_sets_and_palettes() {
     let mut h = harness(1600.0);
     h.get_by_label("Workspace Switching").click();
+    h.run_steps(2);
+    h.get_by_label("Tool Sets & Palettes").click();
     h.run_steps(3);
     assert!(!h.state().ui.show_ribbon);
     assert!(h.state().ui.show_toolsets && h.state().ui.show_palettes);
     h.get_by_role_and_label(egui::accesskit::Role::Tab, "Tool Sets");
     h.get_by_label("Workspace Switching").click();
+    h.run_steps(2);
+    h.get_by_label("Drafting & Annotation").click();
     h.run_steps(3);
     assert!(h.state().ui.show_ribbon && !h.state().ui.show_toolsets);
+}
+
+#[test]
+fn split_buttons_offer_variants_and_remember_the_choice() {
+    let mut h = harness(1920.0);
+    h.get_by_label("Circle options").click();
+    h.run_steps(2);
+    h.get_by_label("2-Point").click();
+    h.run_steps(2);
+    assert_eq!(running(&h).as_deref(), Some("circle.2p"));
+    h.key_press(egui::Key::Escape);
+    h.run_steps(2);
+    // The button now runs the variant chosen last.
+    h.get_by_label("Circle").click();
+    h.run_steps(2);
+    assert_eq!(running(&h).as_deref(), Some("circle.2p"));
+}
+
+#[test]
+fn panel_titles_open_their_slide_outs() {
+    let mut h = harness(1920.0);
+    h.get_by_label("Draw panel").click();
+    h.run_steps(2);
+    h.get_by_label("Revision Cloud").click();
+    h.run_steps(2);
+    assert_eq!(running(&h).as_deref(), Some("revcloud"));
+}
+
+#[test]
+fn object_snap_menu_turns_single_modes_on_and_off() {
+    use autocraft_engine::snap::mode;
+    let mut h = harness(1920.0);
+    let before = h.state().session.settings.osmode;
+    h.get_by_label("Object Snap (F3) menu").click();
+    h.run_steps(2);
+    h.get_by_label("Midpoint").click();
+    h.run_steps(2);
+    let after = h.state().session.settings.osmode;
+    assert_eq!(after & mode::MID != 0, before & mode::MID == 0);
+    assert_eq!(after & mode::OFF, 0, "choosing a mode turns object snap on");
+}
+
+#[test]
+fn clean_screen_hides_the_ribbon_and_brings_it_back() {
+    let mut h = harness(1600.0);
+    h.get_by_label("Clean Screen").click();
+    h.run_steps(2);
+    assert!(h.query_by_label("Line").is_none());
+    h.get_by_label("Clean Screen").click();
+    h.run_steps(2);
+    h.get_by_label("Line");
 }

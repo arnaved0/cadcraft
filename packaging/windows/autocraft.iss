@@ -43,6 +43,14 @@ SolidCompression=yes
 WizardStyle=modern
 ChangesAssociations=yes
 CloseApplications=yes
+; Same AppId as the CADCraft builds, so this replaces that install; it moves to the new folder.
+UsePreviousAppDir=no
+
+[InstallDelete]
+; What the CADCraft builds installed.
+Type: files; Name: "{autoprograms}\CADCraft.lnk"
+Type: files; Name: "{autodesktop}\CADCraft.lnk"
+Type: filesandordirs; Name: "{autopf}\CADCraft"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"

@@ -5,7 +5,9 @@ use std::sync::Arc;
 
 use autocraft_engine::Session;
 use autocraft_engine::cmd::file::{IoHooks, base64_encode, set_io};
-use autocraft_engine::doc::{AssocSnap, Block, Circle, Common, DimAssoc, Drawing, Entity, EntityKind, Group, HVal, Handle, Insert, Line, Space, Text};
+use autocraft_engine::doc::{
+    AssocSnap, Block, Circle, Common, DimAssoc, Drawing, Entity, EntityKind, Group, HVal, Handle, Insert, Line, Space, Text,
+};
 use autocraft_engine::geom::Vec3;
 use serde_json::{Value, json};
 

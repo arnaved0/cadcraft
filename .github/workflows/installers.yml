@@ -171,4 +171,7 @@ jobs:
           else
             gh release create installers --repo "$REPO" --target "$GITHUB_SHA" --title "AutoCraft installers" --notes "$notes" --latest
           fi
+          for old in CADCraft-Setup-Windows-x64.exe CADCraft-macOS.dmg; do
+            gh release delete-asset installers "$old" --repo "$REPO" -y 2>/dev/null || true
+          done
           gh release upload installers --repo "$REPO" --clobber installers/AutoCraft-Setup-Windows-x64.exe installers/AutoCraft-macOS.dmg
