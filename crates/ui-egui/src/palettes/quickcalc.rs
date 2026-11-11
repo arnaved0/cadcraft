@@ -442,7 +442,7 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui) {
 
 #[cfg(test)]
 mod tests {
-    use cadcraft_engine::Session;
+    use autocraft_engine::Session;
     use egui::accesskit::Role;
     use egui_kittest::Harness;
     use egui_kittest::kittest::{NodeT, Queryable};

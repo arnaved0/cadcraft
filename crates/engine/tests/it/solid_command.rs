@@ -1,9 +1,9 @@
 //! SOLID (2D solids) as AutoCAD 2024 draws them from AutoLISP's `command` (accoreconsole, every
 //! solid read back with `entget`).
 
-use cadcraft_engine::Session;
-use cadcraft_engine::doc::EntityKind;
-use cadcraft_engine::geom::Vec2;
+use autocraft_engine::Session;
+use autocraft_engine::doc::EntityKind;
+use autocraft_engine::geom::Vec2;
 use serde_json::json;
 
 /// The corners of every solid, in drawing order.

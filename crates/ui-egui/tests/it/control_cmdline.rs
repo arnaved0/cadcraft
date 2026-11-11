@@ -1,9 +1,9 @@
 //! The app's control channel answers `cmdline.input` and `app.open` with the same reply shape as
-//! the headless MCP backend (`cadcraft_mcp::Headless`, tested in `crates/mcp/tests/it/cmdline_parity.rs`).
+//! the headless MCP backend (`autocraft_mcp::Headless`, tested in `crates/mcp/tests/it/cmdline_parity.rs`).
 
-use cadcraft_engine::Session;
-use cadcraft_ui_egui::control::{ControlRequest, Outcome, handle};
-use cadcraft_ui_egui::{CadApp, Services};
+use autocraft_engine::Session;
+use autocraft_ui_egui::control::{ControlRequest, Outcome, handle};
+use autocraft_ui_egui::{CadApp, Services};
 use serde_json::{Value, json};
 
 const STATE_KEYS: [&str; 7] = ["prompt", "running", "keywords", "accept", "buffer", "history", "historyExpanded"];

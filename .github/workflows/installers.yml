@@ -1,0 +1,177 @@
+# Builds the one-download installers for this fork and publishes them on the "installers" release:
+#
+#   AutoCraft-Setup-Windows-x64.exe   Windows 10/11 setup program (Inno Setup)
+#   AutoCraft-macOS.dmg               macOS 11+ universal (Apple silicon and Intel) drag-to-Applications disk image
+#
+# Pull requests build both and attach them to the run as artifacts. Pushes to main (and v* tags)
+# also replace the files on the release, so these links always give the latest build:
+#   https://github.com/<owner>/<repo>/releases/latest/download/AutoCraft-Setup-Windows-x64.exe
+#   https://github.com/<owner>/<repo>/releases/latest/download/AutoCraft-macOS.dmg
+#
+# Signing is optional: without the APPLE_* secrets the app is ad-hoc signed (Gatekeeper asks once),
+# and the Windows setup is unsigned (SmartScreen asks once).
+name: Installers
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: installers-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  # Same craft-fonts revision as the upstream release workflow; its fonts are embedded in the app.
+  CRAFT_FONTS_REF: b076417b5880bd4154bd22f00695b1d28c6bea83
+
+jobs:
+  macos:
+    name: macOS installer
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: storytold/craft-fonts
+          ref: ${{ env.CRAFT_FONTS_REF }}
+          path: craft-fonts
+          persist-credentials: false
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: installers-macos
+      - name: Import signing certificate (when the secrets are set)
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: packaging/macos/import-cert.sh
+      - name: Build the app and disk image
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: packaging/macos/package.sh --arch universal
+      - name: Name the download
+        run: |
+          mkdir -p dist/installers
+          cp dist/release/autocraft-*-macos-universal.dmg dist/installers/AutoCraft-macOS.dmg
+          ls -lh dist/installers
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-macos
+          path: dist/installers/AutoCraft-macOS.dmg
+          if-no-files-found: error
+
+  windows:
+    name: Windows installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: storytold/craft-fonts
+          ref: ${{ env.CRAFT_FONTS_REF }}
+          path: craft-fonts
+          persist-credentials: false
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: installers-windows
+      - name: Build AutoCraft
+        shell: bash
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+          # Fail rather than ship an exe without its icon and version information.
+          AUTOCRAFT_REQUIRE_WINRES: "1"
+        run: |
+          export AUTOCRAFT_BUILD_SHA="$GITHUB_SHA" AUTOCRAFT_BUILD_DATE="$(date -u +%Y-%m-%d)"
+          cargo build --release --locked -p autocraft -p autocraft-cli
+      - name: Stage the files to install
+        shell: bash
+        run: |
+          stage=dist/windows-stage
+          mkdir -p "$stage"
+          cp target/release/autocraft.exe target/release/autocraft-cli.exe "$stage/"
+          for f in README.md LICENSE-MIT LICENSE-APACHE NOTICE ATTRIBUTION.md; do cp "$f" "$stage/"; done
+          for f in craft-fonts/fonts/*/OFL.txt; do
+            [ -f "$f" ] && cp "$f" "$stage/OFL-$(basename "$(dirname "$f")").txt"
+          done
+          version=$(awk '/^\[/{p=($0=="[workspace.package]");next} p&&$1=="version"{gsub(/[" ]/,"",$3);print $3;exit}' Cargo.toml)
+          echo "APP_VERSION=${version%%-*}" >> "$GITHUB_ENV"
+          ls -l "$stage"
+      - name: Install Inno Setup (when the runner lacks it)
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y }
+          if (-not (Test-Path $iscc)) { throw "Inno Setup was not installed" }
+      - name: Build the setup program
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          & $iscc "/DAppVersion=$env:APP_VERSION" "/DStageDir=$env:GITHUB_WORKSPACE\dist\windows-stage" "/DOutputDir=$env:GITHUB_WORKSPACE\dist\installers" packaging\windows\autocraft.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem dist\installers
+      - name: Silent install smoke test
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\installers\AutoCraft-Setup-Windows-x64.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER' -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "setup exited with $($p.ExitCode)" }
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\AutoCraft\autocraft-cli.exe'
+          if (-not (Test-Path $exe)) { throw "autocraft-cli.exe was not installed at $exe" }
+          & $exe --version
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-windows
+          path: dist/installers/AutoCraft-Setup-Windows-x64.exe
+          if-no-files-found: error
+
+  publish:
+    name: Publish to the release
+    needs: [macos, windows]
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+      - name: Upload the installers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          ls -lh installers
+          notes="One-download installers for AutoCraft, built from ${GITHUB_SHA::7}.
+
+          - **Windows 10/11:** download AutoCraft-Setup-Windows-x64.exe and run it. If Windows SmartScreen says it protected your PC, choose *More info* > *Run anyway*.
+          - **macOS 11 or later (Apple silicon and Intel):** open AutoCraft-macOS.dmg and drag AutoCraft to Applications. The first time, right-click AutoCraft in Applications and choose *Open* (on macOS 15, if it is blocked, go to System Settings > Privacy & Security and click *Open Anyway*)."
+          if gh release view installers --repo "$REPO" >/dev/null 2>&1; then
+            gh release edit installers --repo "$REPO" --title "AutoCraft installers" --notes "$notes" --latest
+          else
+            gh release create installers --repo "$REPO" --target "$GITHUB_SHA" --title "AutoCraft installers" --notes "$notes" --latest
+          fi
+          for old in CADCraft-Setup-Windows-x64.exe CADCraft-macOS.dmg; do
+            gh release delete-asset installers "$old" --repo "$REPO" -y 2>/dev/null || true
+          done
+          gh release upload installers --repo "$REPO" --clobber installers/AutoCraft-Setup-Windows-x64.exe installers/AutoCraft-macOS.dmg

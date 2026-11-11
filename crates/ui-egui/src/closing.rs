@@ -30,7 +30,7 @@ pub enum Choice {
 /// A close request in progress.
 #[derive(Clone, Debug, Default)]
 pub struct Closing {
-    /// Drawings (by [`cadcraft_engine::DocState::uid`]) still to close, front first.
+    /// Drawings (by [`autocraft_engine::DocState::uid`]) still to close, front first.
     queue: VecDeque<u64>,
     /// The drawing the prompt is asking about (always the front of `queue`).
     asking: Option<u64>,
@@ -238,7 +238,7 @@ pub fn prompt(app: &mut CadApp, ctx: &egui::Context) {
     let mut choice = None;
     crate::modal::instant(ctx, egui::Id::unique("cc_close_prompt")).show(ctx, |ui| {
         ui.set_width(360.0);
-        ui.label(RichText::new(crate::tl!("CADCraft")).strong());
+        ui.label(RichText::new(crate::tl!("AutoCraft")).strong());
         ui.add_space(4.0);
         ui.label(crate::tf!("Save changes to {name}?", name = title));
         ui.label(RichText::new(crate::tl!("Your changes will be lost if you don't save them.")).color(t.text_dim));
@@ -269,7 +269,7 @@ pub fn prompt(app: &mut CadApp, ctx: &egui::Context) {
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use cadcraft_engine::Session;
+    use autocraft_engine::Session;
     use serde_json::json;
 
     use super::Choice;
@@ -325,7 +325,7 @@ mod tests {
         assert_eq!(titles(&app), ["A", "B"], "Don't Save waits for the Save dialog");
         assert_eq!(app.close_prompt(), Some("A"));
 
-        let nowhere = std::env::temp_dir().join(format!("cadcraft-no-such-dir-{}", std::process::id())).join("A.dxf");
+        let nowhere = std::env::temp_dir().join(format!("autocraft-no-such-dir-{}", std::process::id())).join("A.dxf");
         answer.borrow_mut().take().unwrap()(Some(nowhere.to_string_lossy().to_string()));
         app.finish_pick(&egui::Context::default());
         assert_eq!(titles(&app), ["A", "B"], "not saved, so not closed");

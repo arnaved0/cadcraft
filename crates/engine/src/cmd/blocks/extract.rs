@@ -4,8 +4,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 
-use cadcraft_doc::{Drawing, EntityKind, Insert};
-use cadcraft_geom::Vec2;
+use autocraft_doc::{Drawing, EntityKind, Insert};
+use autocraft_geom::Vec2;
 use serde_json::{Value, json};
 
 use crate::cmd::curves::KW;
@@ -89,7 +89,7 @@ fn matches(spec: &str, text: &str) -> bool {
 }
 
 /// The constant attribute values of a block definition whose tags are selected for output.
-fn constants(b: &cadcraft_doc::Block, selected: &[String]) -> Vec<(String, String)> {
+fn constants(b: &autocraft_doc::Block, selected: &[String]) -> Vec<(String, String)> {
     let mut v: Vec<(String, String)> = Vec::new();
     for e in b.entities.iter() {
         if let EntityKind::AttDef(a) = &e.kind
@@ -123,7 +123,7 @@ fn values(ins: &Insert, consts: &[(String, String)], selected: &[String]) -> Vec
 
 /// Select the output columns before copying any attribute text. A block definition can contain
 /// many large constants that do not survive the table's 190-column limit.
-fn selected_tags(ents: &[std::sync::Arc<cadcraft_doc::Entity>], d: &Drawing, o: &Options) -> Vec<String> {
+fn selected_tags(ents: &[std::sync::Arc<autocraft_doc::Entity>], d: &Drawing, o: &Options) -> Vec<String> {
     let mut selected = Vec::new();
     let mut add = |tag: &str| {
         let tag = tag.to_ascii_uppercase();
@@ -160,7 +160,7 @@ fn selected_tags(ents: &[std::sync::Arc<cadcraft_doc::Entity>], d: &Drawing, o: 
 /// The block references to extract from: `handles` when given, else model space and the layouts.
 fn found(s: &Session, p: &Value, o: &Options) -> Result<Vec<Found>> {
     let d = s.doc()?;
-    let ents: Vec<std::sync::Arc<cadcraft_doc::Entity>> = if p.get("handles").is_some() || p.get("handle").is_some() {
+    let ents: Vec<std::sync::Arc<autocraft_doc::Entity>> = if p.get("handles").is_some() || p.get("handle").is_some() {
         targets(s, p)?.iter().filter_map(|h| d.entity(*h).cloned()).collect()
     } else {
         d.model.iter().chain(d.layouts.iter().flat_map(|l| l.entities.iter())).cloned().collect()

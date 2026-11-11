@@ -2,9 +2,9 @@
 //! are the source's, for selected objects and for a block, as AutoCAD's `-WBLOCK` does. So are its
 //! other settings and styles: a metric drawing's text size, dimension style and scale list.
 
-use cadcraft_engine::Session;
-use cadcraft_engine::cmd::file::{IoHooks, set_io};
-use cadcraft_engine::doc::Drawing;
+use autocraft_engine::Session;
+use autocraft_engine::cmd::file::{IoHooks, set_io};
+use autocraft_engine::doc::Drawing;
 use serde_json::json;
 
 #[path = "support/temp_dir.rs"]

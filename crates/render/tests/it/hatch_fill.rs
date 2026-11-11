@@ -1,11 +1,11 @@
 //! Hatch drawing: island detection styles, background colour, two-colour gradients and
 //! pattern definitions kept from a file (issues #289, #290).
 
-use cadcraft_color::{Color, Rgb, aci_rgb};
-use cadcraft_doc::library::PatternLine;
-use cadcraft_doc::{Common, Drawing, EntityKind, Gradient, Hatch, HatchLoop, Layer, Space};
-use cadcraft_geom::{PolyVertex, Vec2};
-use cadcraft_render::{DisplayList, Kind, Options, build};
+use autocraft_color::{Color, Rgb, aci_rgb};
+use autocraft_doc::library::PatternLine;
+use autocraft_doc::{Common, Drawing, EntityKind, Gradient, Hatch, HatchLoop, Layer, Space};
+use autocraft_geom::{PolyVertex, Vec2};
+use autocraft_render::{DisplayList, Kind, Options, build};
 
 fn square(lo: f64, hi: f64) -> HatchLoop {
     let v = [(lo, lo), (hi, lo), (hi, hi), (lo, hi)].into_iter().map(|(x, y)| PolyVertex::new(Vec2::new(x, y))).collect();
@@ -167,8 +167,8 @@ fn pattern_lines_from_a_file_are_drawn_for_unknown_names() {
 
 #[test]
 fn pattern_swatches_stay_in_their_square_and_show_a_few_repeats() {
-    for p in cadcraft_doc::library::standard_patterns() {
-        let runs = cadcraft_render::pattern_swatch(&p.lines, 1.0);
+    for p in autocraft_doc::library::standard_patterns() {
+        let runs = autocraft_render::pattern_swatch(&p.lines, 1.0);
         if p.lines.is_empty() {
             assert!(runs.is_empty(), "{}", p.name);
             continue;
@@ -179,7 +179,7 @@ fn pattern_swatches_stay_in_their_square_and_show_a_few_repeats() {
             assert!((-1e-9..=1.0 + 1e-9).contains(&v.x) && (-1e-9..=1.0 + 1e-9).contains(&v.y), "{} at {v:?}", p.name);
         }
     }
-    assert!(cadcraft_render::pattern_swatch(&[], 1.0).is_empty());
+    assert!(autocraft_render::pattern_swatch(&[], 1.0).is_empty());
 }
 
 #[test]
@@ -218,7 +218,7 @@ fn brick_joints_are_drawn_once_half_a_brick_apart_course_to_course() {
 fn compact_patterns_stop_at_the_swatch_limits() {
     let lines = vec![PatternLine { angle: 0.0, origin: (0.0, 0.0), delta: (0.0, 1.0), dashes: vec![1e-6, -1e-6] }];
     let started = std::time::Instant::now();
-    let runs = cadcraft_render::pattern_swatch(&lines, 1.0);
+    let runs = autocraft_render::pattern_swatch(&lines, 1.0);
     assert!(!runs.is_empty() && runs.len() <= 4000, "{}", runs.len());
     assert!(started.elapsed() < std::time::Duration::from_secs(20));
 }

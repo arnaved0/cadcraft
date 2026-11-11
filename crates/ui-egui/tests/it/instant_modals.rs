@@ -1,7 +1,7 @@
 //! "Save changes?" is fully drawn, dim included, in the frame of the Close that asks it.
 
-use cadcraft_engine::Session;
-use cadcraft_ui_egui::{CadApp, Services, menus};
+use autocraft_engine::Session;
+use autocraft_ui_egui::{CadApp, Services, menus};
 use egui::epaint::Shape;
 use egui::vec2;
 use egui_kittest::Harness;

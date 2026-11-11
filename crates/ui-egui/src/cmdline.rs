@@ -3,7 +3,7 @@
 
 use std::collections::HashSet;
 
-use cadcraft_engine::Input;
+use autocraft_engine::Input;
 use egui::{Key, Pos2, Rect, Sense, Stroke, pos2, vec2};
 
 use crate::CadApp;
@@ -13,7 +13,7 @@ use crate::theme::Tokens;
 pub struct CmdLine {
     pub buffer: String,
     /// The selection as of the last frame, to notice when it changes.
-    seen_selection: Vec<cadcraft_doc::Handle>,
+    seen_selection: Vec<autocraft_doc::Handle>,
     /// Something was typed at the command line since the selection was made.
     typed_since_selection: bool,
     pub history: Vec<String>,
@@ -56,7 +56,7 @@ pub fn dyn_frame(app: &CadApp) -> Option<crate::dyninput::Frame> {
     if !st.dynmode || app.session.pending_window.is_some() {
         return None;
     }
-    let p = app.session.current_prompt().filter(cadcraft_engine::pointmod::accepts)?;
+    let p = app.session.current_prompt().filter(autocraft_engine::pointmod::accepts)?;
     Some(crate::dyninput::Frame { base: p.base, cartesian: st.dynpi_cartesian, absolute: st.dynpi_absolute })
 }
 
@@ -129,8 +129,8 @@ fn suggestions(prefix: &str) -> Vec<Suggestion> {
     let mut seen_ids: HashSet<&'static str> = HashSet::new();
 
     // 1. Exact match: alias resolution or exact command name match.
-    let resolved = cadcraft_engine::cmd::resolve_alias(&p);
-    if let Some(spec) = cadcraft_engine::cmd::find_command(&resolved)
+    let resolved = autocraft_engine::cmd::resolve_alias(&p);
+    if let Some(spec) = autocraft_engine::cmd::find_command(&resolved)
         && !spec.id.contains('.')
     {
         let display =
@@ -140,8 +140,8 @@ fn suggestions(prefix: &str) -> Vec<Suggestion> {
     }
 
     // 2. Command ID prefix matches (excluding already matched exact command).
-    let mut id_matches: Vec<&'static cadcraft_engine::CommandSpec> =
-        cadcraft_engine::command_specs().iter().filter(|c| !c.id.contains('.') && !seen_ids.contains(c.id) && c.id.starts_with(&p)).collect();
+    let mut id_matches: Vec<&'static autocraft_engine::CommandSpec> =
+        autocraft_engine::command_specs().iter().filter(|c| !c.id.contains('.') && !seen_ids.contains(c.id) && c.id.starts_with(&p)).collect();
     id_matches.sort_by_key(|c| (c.id.len(), c.id));
     for c in id_matches {
         out.push(Suggestion { id: c.id.to_ascii_uppercase(), display: c.id.to_ascii_uppercase(), label: c.label });
@@ -149,8 +149,8 @@ fn suggestions(prefix: &str) -> Vec<Suggestion> {
     }
 
     // 3. Command alias prefix matches (for commands not yet added).
-    let mut alias_matches: Vec<(&'static str, &'static cadcraft_engine::CommandSpec)> = Vec::new();
-    for c in cadcraft_engine::command_specs() {
+    let mut alias_matches: Vec<(&'static str, &'static autocraft_engine::CommandSpec)> = Vec::new();
+    for c in autocraft_engine::command_specs() {
         if c.id.contains('.') || seen_ids.contains(c.id) {
             continue;
         }
@@ -176,7 +176,7 @@ fn suggestions(prefix: &str) -> Vec<Suggestion> {
 
 impl CmdLine {
     /// Track the selection: a new selection starts with nothing typed since.
-    pub fn watch_selection(&mut self, sel: &[cadcraft_doc::Handle]) {
+    pub fn watch_selection(&mut self, sel: &[autocraft_doc::Handle]) {
         if self.seen_selection != sel {
             self.seen_selection = sel.to_vec();
             self.typed_since_selection = false;
@@ -448,6 +448,73 @@ pub fn submit(app: &mut CadApp) {
     app.cmdline_or(&text, completion.map(|s| s.id.to_ascii_lowercase()).as_deref());
 }
 
+/// The command line's handle at the left end of `bar`: a grip, close and customize, on a darker
+/// strip. Returns its rectangle.
+fn handle(app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, bar: Rect) -> Rect {
+    let t = Tokens::get();
+    let h = bar.height();
+    // The handle: a grip, close and customize, on a darker strip.
+    let handle = Rect::from_min_size(bar.min, vec2(HANDLE_W, h));
+    p.rect_filled(handle.shrink(1.0), egui::CornerRadius { nw: 3, sw: 3, ne: 0, se: 0 }, t.chrome_dark);
+    for k in 0..4 {
+        p.circle_filled(pos2(handle.left() + 5.0, handle.top() + 6.0 + k as f32 * 4.0), 0.9, t.text_faint);
+    }
+    let mut handle_cmd = None;
+    for (i, (icon, cmd, label)) in
+        [(crate::icons::Icon::Close, "ui.toggle.cmdline", "Close Command Line"), (crate::icons::Icon::Wrench, "options", "Customize")]
+            .into_iter()
+            .enumerate()
+    {
+        let br = Rect::from_center_size(pos2(handle.left() + 18.0 + i as f32 * 18.0, bar.center().y), vec2(16.0, 16.0));
+        let resp = ui.interact(br, ui.scope_id().with(("cmd_handle", i)), Sense::click());
+        if resp.hovered() {
+            p.rect_filled(br, 2.0, t.control_hover);
+        }
+        crate::icons::paint(p, br.shrink(2.0), icon, false);
+        crate::icons::describe_control(ui, &resp, label, None, false);
+        if resp.on_hover_text(crate::i18n::t(label)).clicked() {
+            handle_cmd = Some(cmd);
+        }
+    }
+    if let Some(cmd) = handle_cmd {
+        crate::menus::activate(app, cmd);
+    }
+    p.vline(handle.right(), bar.y_range().shrink(3.0), Stroke::new(1.0, t.cmd_border));
+    handle
+}
+
+/// The prompt glyph at the start of the input field; it opens the recent commands, newest first.
+fn recent_button(app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, r: Rect, t: Tokens) {
+    let resp = ui.interact(r, ui.scope_id().with("cmd_recent"), Sense::click());
+    if resp.hovered() {
+        p.rect_filled(r, 2.0, t.cmd_keyword_hover);
+    }
+    p.text(pos2(r.left() + 3.0, r.center().y), egui::Align2::LEFT_CENTER, ">_", crate::theme::mono(), t.text);
+    let c = pos2(r.right() - 4.0, r.center().y + 1.0);
+    p.add(egui::Shape::convex_polygon(vec![c + vec2(-2.5, -1.2), c + vec2(2.5, -1.2), c + vec2(0.0, 1.8)], t.text, Stroke::NONE));
+    crate::icons::describe_control(ui, &resp, "Recent Commands", None, false);
+    let recent = app.session.recent_commands(12);
+    let mut pick = None;
+    egui::Popup::menu(&resp).show(|ui| {
+        if recent.is_empty() {
+            ui.weak(crate::tl!("No recent commands"));
+        }
+        for id in &recent {
+            if ui.button(id.to_ascii_uppercase()).clicked() {
+                pick = Some(id.clone());
+                ui.close();
+            }
+        }
+    });
+    if let Some(id) = pick {
+        app.cmd.buffer.clear();
+        app.start(&id);
+    }
+}
+
+/// Width of the command line's handle (grip, close, customize) at its left end.
+const HANDLE_W: f32 = 50.0;
+
 fn visible_lines(app: &CadApp, canvas: Rect, bar: Rect) -> usize {
     let available = ((bar.top() - canvas.top() - 8.0).max(0.0) / LINE_H) as usize;
     app.ui.history_lines.min(MAX_LINES).min(available)
@@ -474,9 +541,21 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
     }
     p.rect_filled(bar, 3.0, t.cmd_bg);
     p.rect_stroke(bar, 3.0, Stroke::new(1.0, t.cmd_border), egui::StrokeKind::Inside);
-    // Prompt glyph.
-    p.text(pos2(bar.left() + 8.0, bar.center().y), egui::Align2::LEFT_CENTER, ">_", crate::theme::mono(), t.text_dim);
-    let mut x = bar.left() + 30.0;
+    let handle = handle(app, ui, &p, bar);
+    // The input field: light, with dark text, as AutoCAD draws it.
+    let field = Rect::from_min_max(pos2(handle.right() + 1.0, bar.top() + 1.0), pos2(bar.right() - 1.0, bar.bottom() - 1.0));
+    p.rect_filled(field, egui::CornerRadius { nw: 0, sw: 0, ne: 2, se: 2 }, t.cmd_input);
+    let t0 = t;
+    let t = Tokens {
+        text: t.cmd_ink,
+        text_dim: t.cmd_ink_faint,
+        text_faint: t.cmd_ink_faint,
+        cmd_keyword: Tokens::LIGHT.cmd_keyword,
+        cmd_keyword_hover: Tokens::LIGHT.cmd_keyword_hover,
+        ..t
+    };
+    recent_button(app, ui, &p, Rect::from_min_size(pos2(handle.right() + 3.0, bar.top() + 2.0), vec2(26.0, h - 4.0)), t);
+    let mut x = handle.right() + 32.0;
     let prompt = app.session.current_prompt();
     let font = crate::theme::body();
     match &prompt {
@@ -577,12 +656,9 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
     let caret = Rect::from_min_size(pos2(caret_x + 1.0, bar.top() + 5.0), vec2(1.0, h - 10.0));
     app.cmd.ime_rect = Some((bar, caret));
     // History chevron.
-    crate::icons::paint(
-        &p,
-        Rect::from_center_size(pos2(bar.right() - 14.0, bar.center().y), vec2(14.0, 14.0)),
-        if app.cmd.expanded { crate::icons::Icon::ChevronDown } else { crate::icons::Icon::ChevronUp },
-        false,
-    );
+    let c = pos2(bar.right() - 14.0, bar.center().y);
+    let dy = if app.cmd.expanded { 2.0 } else { -2.0 };
+    p.line(vec![c + vec2(-4.0, -dy), c + vec2(0.0, dy), c + vec2(4.0, -dy)], Stroke::new(1.3, t.text));
     // AutoComplete list.
     if !app.session.prompting() {
         let sug = suggestions(&app.cmd.buffer);
@@ -595,21 +671,21 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
                 ),
                 vec2((bar.width() - 24.0).max(0.0), rh * sug.len() as f32),
             );
-            p.rect_filled(lr, 3.0, t.list_bg);
-            p.rect_stroke(lr, 3.0, Stroke::new(1.0, t.cmd_border), egui::StrokeKind::Inside);
+            p.rect_filled(lr, 3.0, t0.list_bg);
+            p.rect_stroke(lr, 3.0, Stroke::new(1.0, t0.cmd_border), egui::StrokeKind::Inside);
             for (i, s) in sug.iter().enumerate() {
                 let r = Rect::from_min_size(pos2(lr.left(), lr.top() + rh * i as f32), vec2(lr.width(), rh));
                 let resp = ui.interact(r, ui.scope_id().with(("sug", i)), Sense::click());
                 if resp.hovered() || i == 0 {
-                    p.rect_filled(r.shrink(1.0), 2.0, if resp.hovered() { t.cmd_keyword_hover } else { t.list_row });
+                    p.rect_filled(r.shrink(1.0), 2.0, if resp.hovered() { t0.cmd_keyword_hover } else { t0.list_row });
                 }
-                p.text(Pos2::new(r.left() + 8.0, r.center().y), egui::Align2::LEFT_CENTER, &s.display, crate::theme::body(), t.text);
+                p.text(Pos2::new(r.left() + 8.0, r.center().y), egui::Align2::LEFT_CENTER, &s.display, crate::theme::body(), t0.text);
                 p.text(
                     Pos2::new(r.right() - 8.0, r.center().y),
                     egui::Align2::RIGHT_CENTER,
                     crate::i18n::t(s.label),
                     crate::theme::small(),
-                    t.text_faint,
+                    t0.text_faint,
                 );
                 if resp.clicked() {
                     app.cmd.buffer.clear();
@@ -722,7 +798,7 @@ fn history_window(app: &CadApp, ui: &mut egui::Ui, r: Rect) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cadcraft_engine::Session;
+    use autocraft_engine::Session;
     use egui::{Event, PointerButton};
 
     #[test]
@@ -759,7 +835,7 @@ mod tests {
 
     #[test]
     fn ime_preedit_is_shown_and_its_commit_is_inserted_once() {
-        use cadcraft_engine::geom::Vec2;
+        use autocraft_engine::geom::Vec2;
         let mut app = CadApp::new(Session::new(), crate::Services::default());
         app.run("text", serde_json::json!({"at": [0, 0], "text": "HELLO", "height": 2.5})).unwrap();
         app.start("textedit");
@@ -780,7 +856,7 @@ mod tests {
         let enter = |pressed| Event::Key { key: Key::Enter, physical_key: None, pressed, repeat: false, modifiers: egui::Modifiers::NONE };
         frame(&mut app, &ctx, vec![enter(true), enter(false)]);
         let text = app.session.doc().unwrap().model.iter().next().map(|e| match &e.kind {
-            cadcraft_engine::doc::EntityKind::Text(t) => t.value.clone(),
+            autocraft_engine::doc::EntityKind::Text(t) => t.value.clone(),
             _ => String::new(),
         });
         assert_eq!(text.as_deref(), Some("中文"));
@@ -845,7 +921,7 @@ mod tests {
 #[cfg(test)]
 mod delete_key_tests {
     use super::*;
-    use cadcraft_doc::Handle;
+    use autocraft_doc::Handle;
 
     const PRESS: KeyPress = KeyPress { repeat: false, plain: true };
 
@@ -926,14 +1002,14 @@ mod autocomplete_tests {
 
     #[test]
     fn tab_autocompletes_alias_to_resolved_command() {
-        let mut app = CadApp::new(cadcraft_engine::Session::empty(), crate::Services::default());
+        let mut app = CadApp::new(autocraft_engine::Session::empty(), crate::Services::default());
         app.cmd.buffer = "rec".to_string();
         tab(&mut app);
         assert_eq!(app.cmd.buffer, "RECTANG");
     }
 
     fn app() -> CadApp {
-        let mut app = CadApp::new(cadcraft_engine::Session::empty(), crate::Services::default());
+        let mut app = CadApp::new(autocraft_engine::Session::empty(), crate::Services::default());
         app.start("ui.sample");
         app
     }

@@ -12,7 +12,7 @@
 
 use std::sync::Arc;
 
-use cadcraft_geom::Vec2;
+use autocraft_geom::Vec2;
 use encoding_rs::Encoding;
 
 use super::{ShxFont, ShxKind};

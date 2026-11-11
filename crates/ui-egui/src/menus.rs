@@ -97,6 +97,9 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("ui.animations.off", "Off", &["View", "Accessibility", "Animation Effects", "Off"], None),
     ("ui.animations", "Animation Effects", &[], None),
     ("ui.toggle.toolbar", "Tool Bar", &["Window", "Tool Bar"], None),
+    ("ui.toggle.ribbon", "Ribbon", &["Window", "Ribbon"], None),
+    ("ui.toggle.navbar", "Navigation Bar", &["View", "Navigation Bar"], None),
+    ("ui.cleanscreen", "Clean Screen", &["View", "Clean Screen"], Some("Cmd+0")),
     ("ui.toggle.filetabs", "File Tab", &["Window", "File Tab"], None),
     ("ui.toggle.statusbar", "Status Bar", &["Window", "Status Bar"], None),
     ("ui.toggle.cmdline", "Command Line", &["Window", "Command Line"], Some("Cmd+9")),
@@ -127,8 +130,8 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("ui.dialog.dsettings", "Drafting Settings...", &[], None),
     #[cfg(not(target_arch = "wasm32"))]
     ("ui.updates.check", "Check for Updates…", &["Help", "Check for Updates…"], None),
-    ("ui.dialog.about", "About CADCraft", &["Help", "About CADCraft"], None),
-    ("ui.dialog.commands", "Command Reference", &["Help", "CADCraft Help"], Some("F1")),
+    ("ui.dialog.about", "About AutoCraft", &["Help", "About AutoCraft"], None),
+    ("ui.dialog.commands", "Command Reference", &["Help", "AutoCraft Help"], Some("F1")),
     ("ui.toggle.history", "Command History", &["Window", "Command History"], Some("F2")),
     ("ui.cmdline.lines", "Command Line History Lines", &[], None),
     ("ui.cmdline.clear", "Clear Command History", &[], None),
@@ -137,7 +140,7 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("ui.shortcuts", "Keyboard Shortcuts...", &["Tools", "Customize", "Keyboard Shortcuts..."], None),
     ("ui.language", "Language", &[], None),
     ("ui.noop", "", &[], None),
-    ("ui.quit", "Quit CADCraft", &[], Some("Cmd+Q")),
+    ("ui.quit", "Quit AutoCraft", &[], Some("Cmd+Q")),
 ];
 
 pub fn is_ui_command(id: &str) -> bool {
@@ -279,6 +282,33 @@ fn run_ui_toggle_command(app: &mut CadApp, id: &str, params: &Value) -> Option<R
         "ui.toggle.palettes" => {
             toggle(&mut app.ui.show_palettes, params);
             Ok(Value::Null)
+        }
+        "ui.toggle.navbar" => {
+            toggle(&mut app.ui.show_navbar, params);
+            Ok(json!({ "on": app.ui.show_navbar }))
+        }
+        "ui.cleanscreen" => {
+            // Clean Screen clears the ribbon and palettes; the title bar, command line and status
+            // bar stay. Turning it off brings back what was showing.
+            match app.ui.clean_screen.take() {
+                Some((toolsets, palettes)) => {
+                    app.ui.show_toolsets = toolsets;
+                    app.ui.show_palettes = palettes;
+                }
+                None => {
+                    app.ui.clean_screen = Some((app.ui.show_toolsets, app.ui.show_palettes));
+                    app.ui.show_toolsets = false;
+                    app.ui.show_palettes = false;
+                }
+            }
+            Ok(json!({ "on": app.ui.clean_screen.is_some() }))
+        }
+        "ui.toggle.ribbon" => {
+            // The ribbon comes and goes with its workspace (Tool Sets and palettes the other way).
+            let mut on = app.ui.show_ribbon;
+            toggle(&mut on, params);
+            crate::chrome::set_workspace(app, on);
+            Ok(json!({ "on": on }))
         }
         "ui.toggle.toolbar" => {
             toggle(&mut app.ui.show_toolbar, params);
@@ -472,7 +502,7 @@ fn run_ui_command_inner(app: &mut CadApp, id: &str, params: &Value) -> Option<Re
             });
         }
         "ui.sample" => {
-            let d = cadcraft_engine::sample::default_sample();
+            let d = autocraft_engine::sample::default_sample();
             app.session.open_drawing(d, "Bracket", None);
             app.canvas.zoom_pending = true;
             app.ui.start_tab = false;
@@ -600,7 +630,7 @@ fn run_ui_command_inner(app: &mut CadApp, id: &str, params: &Value) -> Option<Re
 
 /// SAVEAS parameters for a path picked in the Save dialog: a drawing that has no file yet is saved
 /// in the default save version; one opened from a file keeps that file's version.
-fn saveas_params(ui: &crate::UiState, session: &cadcraft_engine::Session, path: &str) -> Value {
+fn saveas_params(ui: &crate::UiState, session: &autocraft_engine::Session, path: &str) -> Value {
     let untitled = session.state().is_ok_and(|s| s.path.is_none());
     match crate::SaveVersion::parse(&ui.save_version) {
         Some(v) if untitled => json!({ "path": path, "version": v.year() }),
@@ -683,7 +713,7 @@ pub fn tree(app: &CadApp) -> Vec<(String, Vec<Entry>)> {
             }
         }
     };
-    for c in cadcraft_engine::command_specs() {
+    for c in autocraft_engine::command_specs() {
         if !c.menu.is_empty() {
             add(c.menu, c.label, c.id, c.shortcut, (c.enabled)(&app.session).is_ok());
         }
@@ -876,7 +906,7 @@ pub fn run_transparent(app: &mut CadApp, id: &str) {
     }
 }
 
-/// CADCraft's keyboard shortcuts and function keys, each with the command it runs. Every shortcut a
+/// AutoCraft's keyboard shortcuts and function keys, each with the command it runs. Every shortcut a
 /// command shows (its registry `key`, or a UI command's) must be here, or pressing it does nothing.
 pub(crate) fn builtin_shortcuts() -> Vec<(egui::KeyboardShortcut, &'static str)> {
     use egui::{Key, KeyboardShortcut, Modifiers};
@@ -904,6 +934,7 @@ pub(crate) fn builtin_shortcuts() -> Vec<(egui::KeyboardShortcut, &'static str)>
         (sc(cmd, Key::Num1), "ui.panel.properties"),
         (sc(cmd, Key::Num3), "ui.toggle.toolsets"),
         (sc(cmd, Key::Num9), "ui.toggle.cmdline"),
+        (sc(cmd, Key::Num0), "ui.cleanscreen"),
         (sc(Modifiers::NONE, Key::F1), "ui.dialog.commands"),
         (sc(Modifiers::NONE, Key::F2), "ui.toggle.history"),
         (sc(Modifiers::NONE, Key::F3), "osnap"),
@@ -918,7 +949,7 @@ pub(crate) fn builtin_shortcuts() -> Vec<(egui::KeyboardShortcut, &'static str)>
     ]
 }
 
-/// Keyboard shortcuts and function keys: the user's ([`crate::keys`]) and CADCraft's own.
+/// Keyboard shortcuts and function keys: the user's ([`crate::keys`]) and AutoCraft's own.
 pub fn shortcuts(app: &mut CadApp, ctx: &egui::Context) {
     use egui::{Key, KeyboardShortcut, Modifiers};
     // A recording ends with the dialog it was started in; while it lasts the keys are its own.
@@ -974,13 +1005,13 @@ mod tests {
     use std::cell::RefCell;
     use std::rc::Rc;
 
-    use cadcraft_engine::Session;
-    use cadcraft_engine::cmd::file::{IoHooks, io, set_io};
+    use autocraft_engine::Session;
+    use autocraft_engine::cmd::file::{IoHooks, io, set_io};
     use serde_json::{Value, json};
 
     use crate::{CadApp, Services};
 
-    fn fake_plot(_: &cadcraft_doc::Drawing, _: &cadcraft_doc::Space, _: &Value) -> Result<Vec<u8>, String> {
+    fn fake_plot(_: &autocraft_doc::Drawing, _: &autocraft_doc::Space, _: &Value) -> Result<Vec<u8>, String> {
         Ok(b"%PDF-1.4 test".to_vec())
     }
 
@@ -1021,7 +1052,7 @@ mod tests {
         // macOS app menu, the only place that shows it.
         let elsewhere = [("Delete", "erase.selection"), ("Cmd+8", "ui.toggle.quickcalc"), ("Cmd+Q", "ui.quit")];
         let table = super::builtin_shortcuts();
-        let shown = cadcraft_engine::command_specs()
+        let shown = autocraft_engine::command_specs()
             .iter()
             .filter_map(|c| Some((c.shortcut?, c.id)))
             .chain(super::UI_COMMANDS.iter().filter_map(|(id, _, _, sc)| Some(((*sc)?, *id))));
@@ -1045,7 +1076,7 @@ mod tests {
         if io().and_then(|h| h.plot).is_none() {
             return; // another test installed hooks without a plotter first
         }
-        let path = std::env::temp_dir().join(format!("cadcraft-print-test-{}.pdf", std::process::id()));
+        let path = std::env::temp_dir().join(format!("autocraft-print-test-{}.pdf", std::process::id()));
         let ps = path.to_string_lossy().to_string();
         let _ = std::fs::remove_file(&path);
         let (mut app, asked) = app_with_picker(Some(ps.clone()));
@@ -1084,7 +1115,7 @@ mod tests {
 
 #[cfg(test)]
 mod reference_order_tests {
-    use cadcraft_engine::Session;
+    use autocraft_engine::Session;
 
     use super::{Entry, Reference, reference, tree};
     use crate::{CadApp, Services};
@@ -1176,7 +1207,7 @@ mod shortcut_label_tests {
 
 #[cfg(test)]
 mod units_dialog_tests {
-    use cadcraft_engine::Session;
+    use autocraft_engine::Session;
     use serde_json::json;
 
     use crate::{CadApp, Services};

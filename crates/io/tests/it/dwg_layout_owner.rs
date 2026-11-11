@@ -6,9 +6,9 @@
 
 use std::io::Cursor;
 
-use cadcraft_doc::{Circle, Common, Drawing, EntityKind, Layout, Line, Space};
-use cadcraft_geom::Vec3;
-use cadcraft_io::{SaveOptions, Version, read, write_with};
+use autocraft_doc::{Circle, Common, Drawing, EntityKind, Layout, Line, Space};
+use autocraft_geom::Vec3;
+use autocraft_io::{SaveOptions, Version, read, write_with};
 
 #[test]
 fn entities_of_a_second_layout_are_owned_by_its_block() {

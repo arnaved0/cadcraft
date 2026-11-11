@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=AutoCraft
+GenericName=Computer-Aided Design
+Comment=Draft, dimension and plot 2D drawings; open DXF and DWG files
+Exec=autocraft %F
+TryExec=autocraft
+Icon=io.github.arnaved0.autocraft
+Terminal=false
+StartupNotify=true
+StartupWMClass=io.github.arnaved0.autocraft
+Categories=Graphics;Engineering;VectorGraphics;
+MimeType=image/vnd.dxf;image/vnd.dwg;application/x-dxf;application/acad;
+Keywords=cad;drafting;dxf;dwg;drawing;engineering;architecture;mechanical;

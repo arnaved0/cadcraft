@@ -8,22 +8,22 @@ version = "0.17.0"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 rust-version = "1.95"
-repository = "https://github.com/storytold/cadcraft"
+repository = "https://github.com/arnaved0/cadcraft"
 
 [workspace.dependencies]
 # internal
-cadcraft-geom = { path = "crates/geom" }
-cadcraft-dxf = { path = "crates/dxf" }
-cadcraft-dwg = { path = "crates/dwg" }
-cadcraft-color = { path = "crates/color" }
-cadcraft-doc = { path = "crates/doc" }
-cadcraft-constraints = { path = "crates/constraints" }
-cadcraft-fonts = { path = "crates/fonts" }
-cadcraft-render = { path = "crates/render" }
-cadcraft-io = { path = "crates/io" }
-cadcraft-engine = { path = "crates/engine" }
-cadcraft-ui-egui = { path = "crates/ui-egui" }
-cadcraft-mcp = { path = "crates/mcp" }
+autocraft-geom = { path = "crates/geom" }
+autocraft-dxf = { path = "crates/dxf" }
+autocraft-dwg = { path = "crates/dwg" }
+autocraft-color = { path = "crates/color" }
+autocraft-doc = { path = "crates/doc" }
+autocraft-constraints = { path = "crates/constraints" }
+autocraft-fonts = { path = "crates/fonts" }
+autocraft-render = { path = "crates/render" }
+autocraft-io = { path = "crates/io" }
+autocraft-engine = { path = "crates/engine" }
+autocraft-ui-egui = { path = "crates/ui-egui" }
+autocraft-mcp = { path = "crates/mcp" }
 # Which paths stored in a drawing (xrefs, data links) may be opened.
 craft-docpath = { version = "0.1.0", git = "https://github.com/storytold/craft-libs", rev = "92d392cff132eaf53e13afff77f38b5c11b73aa0" }
 # PDF writing (krilla) for plots, and reading them back in tests. The root patches below pin

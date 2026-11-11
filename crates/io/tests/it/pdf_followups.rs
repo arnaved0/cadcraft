@@ -2,9 +2,9 @@
 //! plots draw plot style ends, joins and fills as PDF does, and hyperlinks a drawing file gives
 //! its entities (`PE_URL` extended data) become PDF link annotations.
 
-use cadcraft_doc::{Common, Drawing, EndStyle, EntityKind, Line, PlotStyle, PlotStyleTable, Space};
-use cadcraft_geom::Vec3;
-use cadcraft_io::{plotter, read_dxf, write_dxf};
+use autocraft_doc::{Common, Drawing, EndStyle, EntityKind, Line, PlotStyle, PlotStyleTable, Space};
+use autocraft_geom::Vec3;
+use autocraft_io::{plotter, read_dxf, write_dxf};
 use serde_json::{Value, json};
 
 fn line(d: &mut Drawing, a: (f64, f64), b: (f64, f64)) {

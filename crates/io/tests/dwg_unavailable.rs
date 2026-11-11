@@ -3,8 +3,8 @@
 
 #![cfg(any(target_arch = "wasm32", all(target_os = "freebsd", target_arch = "aarch64")))]
 
-use cadcraft_doc::Drawing;
-use cadcraft_io::{read, write};
+use autocraft_doc::Drawing;
+use autocraft_io::{read, write};
 
 #[test]
 fn no_dwg_bridge_preserves_dxf_and_reports_dwg_unavailable() {

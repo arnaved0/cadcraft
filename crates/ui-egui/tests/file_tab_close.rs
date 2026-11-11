@@ -2,8 +2,8 @@
 //! closes that drawing. It used to take the tab's hover, so the next frame dropped it and the one
 //! after drew it again: the tab and its X flickered.
 
-use cadcraft_engine::Session;
-use cadcraft_ui_egui::{CadApp, Services};
+use autocraft_engine::Session;
+use autocraft_ui_egui::{CadApp, Services};
 use egui::accesskit::Role;
 use egui::vec2;
 use egui_kittest::Harness;

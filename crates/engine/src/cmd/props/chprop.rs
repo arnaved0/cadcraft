@@ -17,8 +17,8 @@
 
 use std::collections::HashSet;
 
-use cadcraft_color::Color;
-use cadcraft_doc::{Entity, Handle, Lineweight};
+use autocraft_color::Color;
+use autocraft_doc::{Entity, Handle, Lineweight};
 use serde_json::{Value, json};
 
 use super::super::curves::{KW, is_locked};

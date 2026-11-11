@@ -1,9 +1,9 @@
 //! The thin crosshair and pickbox follow the background under the pointer, including in MSPACE.
 
-use cadcraft_engine::Session;
-use cadcraft_engine::doc::{Common, EntityKind, Space, Viewport};
-use cadcraft_engine::geom::{Vec2, Vec3};
-use cadcraft_ui_egui::{CadApp, Services, theme};
+use autocraft_engine::Session;
+use autocraft_engine::doc::{Common, EntityKind, Space, Viewport};
+use autocraft_engine::geom::{Vec2, Vec3};
+use autocraft_ui_egui::{CadApp, Services, theme};
 use egui::{Color32, Context, Pos2, Rect, Shape, Stroke, pos2, vec2};
 use serde_json::json;
 

@@ -1,6 +1,6 @@
-//! The CADCraft egui front end.
+//! The AutoCraft egui front end.
 //!
-//! A thin shell over [`cadcraft_engine::Session`]: panels read engine state and act through
+//! A thin shell over [`autocraft_engine::Session`]: panels read engine state and act through
 //! commands (`app.run(id, params)`) or the command line (`app.cmdline(text)`). Nothing here owns
 //! drawing data. The layout follows the familiar CAD desktop: title and tool bar, file tabs,
 //! Tool Sets on the left, the drawing area with its command line, Layers and Properties on the
@@ -8,13 +8,13 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 #![forbid(unsafe_code)]
 
-/// CADCraft as craft-update knows it, with its 128 px icon and accent colour: the update
+/// AutoCraft as craft-update knows it, with its 128 px icon and accent colour: the update
 /// prompt shows both, and an AppImage's menu entry gets the icon.
 #[cfg(not(target_arch = "wasm32"))]
 pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
-    icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/ai.storyteller.cadcraft.png")),
-    accent: Some([0x3e, 0xa6, 0xe8]),
-    ..craft_update::suite::CADCRAFT
+    icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/io.github.arnaved0.autocraft.png")),
+    accent: Some([0xc8, 0x22, 0x2c]),
+    ..craft_update::app::App::new("autocraft", "AutoCraft", "Computer-aided design and drafting", "arnaved0/cadcraft")
 };
 
 pub mod aliasdlg;
@@ -62,6 +62,7 @@ pub mod palettes;
 pub mod parametric;
 pub mod plotstyles;
 pub mod quick;
+pub mod ribbon;
 pub mod save_loss;
 pub mod shortcut_menus;
 pub mod theme;
@@ -75,14 +76,14 @@ pub mod exchange;
 use std::path::Path;
 use std::sync::mpsc::Receiver;
 
-use cadcraft_engine::Session;
+use autocraft_engine::Session;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
 pub use control::{ControlRequest, ControlResponse, PendingReply};
 
 /// The host storage key for [`CadApp::prefs_json`].
-pub const PREFS_KEY: &str = "cadcraft.prefs";
+pub const PREFS_KEY: &str = "autocraft.prefs";
 
 /// How many recently opened drawings are kept (AutoCAD's default for its file history).
 pub const RECENT_FILES: usize = 9;
@@ -96,7 +97,22 @@ pub struct UiState {
     pub interface_language: i18n::Preference,
     pub show_toolsets: bool,
     pub show_palettes: bool,
+    /// The quick access bar (the small command icons in the title row).
     pub show_toolbar: bool,
+    /// The ribbon of command tabs and panels under the quick access bar.
+    pub show_ribbon: bool,
+    /// The ribbon tab shown ([`ribbon::TABS`] name).
+    pub ribbon_tab: String,
+    /// Only the ribbon's tab row shows; clicking a tab brings its panels back.
+    pub ribbon_minimized: bool,
+    /// Split buttons' last-chosen variants: (button command, variant command).
+    pub ribbon_last: Vec<(String, String)>,
+    /// The navigation bar under the ViewCube.
+    pub show_navbar: bool,
+    /// Status bar buttons the user turned off in its customization menu (their commands).
+    pub status_hidden: Vec<String>,
+    /// While Clean Screen is on: whether Tool Sets and the palettes were showing before it.
+    pub clean_screen: Option<(bool, bool)>,
     pub show_file_tabs: bool,
     pub show_status_bar: bool,
     pub show_command_line: bool,
@@ -141,14 +157,14 @@ pub struct UiState {
 }
 
 /// A DXF/DWG file version (2000 … 2018).
-pub use cadcraft_engine::cmd::file::Version as SaveVersion;
+pub use autocraft_engine::cmd::file::Version as SaveVersion;
 
 /// The default save format, like AutoCAD's Options > Open and Save > "Save as": the format Save As
 /// suggests for every drawing, an opened DWG or DXF too. Save (QSAVE) of an opened file keeps its file.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum SaveFormat {
-    /// CADCraft's native format, and the default.
+    /// AutoCraft's native format, and the default.
     #[default]
     Dxf,
     Dwg,
@@ -186,6 +202,19 @@ impl SaveFormat {
     }
 }
 
+impl UiState {
+    /// The Drafting & Annotation workspace: the quick access bar and ribbon over an uncluttered
+    /// drawing area, with Tool Sets, the palettes and the in-window menu bar put away (the
+    /// application menu holds every menu). New installs start in it.
+    pub fn use_ribbon_workspace(&mut self) {
+        self.show_ribbon = true;
+        self.show_toolbar = true;
+        self.show_toolsets = false;
+        self.show_palettes = false;
+        self.in_window_menu = false;
+    }
+}
+
 impl Default for UiState {
     fn default() -> Self {
         UiState {
@@ -195,6 +224,13 @@ impl Default for UiState {
             show_toolsets: true,
             show_palettes: true,
             show_toolbar: true,
+            show_ribbon: false,
+            ribbon_tab: "Home".into(),
+            ribbon_minimized: false,
+            ribbon_last: Vec::new(),
+            show_navbar: true,
+            clean_screen: None,
+            status_hidden: chrome::DEFAULT_STATUS_HIDDEN.iter().map(|s| (*s).to_string()).collect(),
             show_file_tabs: true,
             show_status_bar: true,
             show_command_line: true,
@@ -219,6 +255,39 @@ impl Default for UiState {
             last_lisp_dir: None,
             last_pgp_dir: None,
         }
+    }
+}
+
+/// Without a system title bar and frame (Windows), the window's outer few points resize it: the
+/// pointer shows the resize cursor there and a press starts the system's resize.
+fn resize_edges(ctx: &egui::Context) {
+    use egui::ResizeDirection as D;
+    const EDGE: f32 = 5.0;
+    if ctx.input(|i| i.viewport().maximized.unwrap_or(false) || i.viewport().fullscreen.unwrap_or(false)) {
+        return;
+    }
+    let Some(p) = ctx.pointer_hover_pos() else { return };
+    let r = ctx.content_rect();
+    let (w, e, n, s) = (p.x < r.left() + EDGE, p.x > r.right() - EDGE, p.y < r.top() + EDGE, p.y > r.bottom() - EDGE);
+    let dir = match (w, e, n, s) {
+        (true, _, true, _) => D::NorthWest,
+        (_, true, true, _) => D::NorthEast,
+        (true, _, _, true) => D::SouthWest,
+        (_, true, _, true) => D::SouthEast,
+        (true, ..) => D::West,
+        (_, true, ..) => D::East,
+        (_, _, true, _) => D::North,
+        (_, _, _, true) => D::South,
+        _ => return,
+    };
+    ctx.set_cursor_icon(match dir {
+        D::North | D::South => egui::CursorIcon::ResizeVertical,
+        D::East | D::West => egui::CursorIcon::ResizeHorizontal,
+        D::NorthWest | D::SouthEast => egui::CursorIcon::ResizeNwSe,
+        D::NorthEast | D::SouthWest => egui::CursorIcon::ResizeNeSw,
+    });
+    if ctx.input(|i| i.pointer.primary_pressed()) {
+        ctx.send_viewport_cmd(egui::ViewportCommand::BeginResize(dir));
     }
 }
 
@@ -296,6 +365,9 @@ pub struct CadApp {
     /// Drawings being read on worker threads ([`opening`]).
     pub opening: opening::Opening,
     pub integrated_titlebar: bool,
+    /// The app draws the window's title bar and its minimize, maximize and close buttons (Windows,
+    /// where the main window has no system title bar).
+    pub caption_buttons: bool,
     control_rx: Option<Receiver<ControlRequest>>,
     /// Fresh surface and identity snapshot (see [`capture`]).
     pub(crate) capture_geometry: Option<capture::CaptureGeometry>,
@@ -348,7 +420,7 @@ pub struct CadApp {
     /// The loss the user last agreed to, so saving again doesn't ask again ([`save_loss`]).
     pub save_loss_accepted: Option<save_loss::Accepted>,
     /// Autosave (desktop; `None` until [`Self::enable_autosave`]).
-    pub autosave: Option<cadcraft_engine::autosave::Autosaver>,
+    pub autosave: Option<autocraft_engine::autosave::Autosaver>,
     /// Drawing Recovery: autosave files a crashed app left behind.
     pub recovery: autosave::Recovery,
     /// GPU errors and device loss reported by wgpu ([`gpu::GpuFaults`]).
@@ -390,6 +462,7 @@ impl CadApp {
             status: None,
             opening: opening::Opening::default(),
             integrated_titlebar: false,
+            caption_buttons: false,
             control_rx: None,
             capture_geometry: None,
             capture_epoch: 0,
@@ -630,7 +703,7 @@ impl CadApp {
         }
         let e = match (self.session.cmdline(text), fallback) {
             (Ok(()), _) => return None,
-            (Err(cadcraft_engine::EngineError::UnknownCommand(_)), Some(f)) => return self.cmdline(f),
+            (Err(autocraft_engine::EngineError::UnknownCommand(_)), Some(f)) => return self.cmdline(f),
             (Err(e), _) => e.to_string(),
         };
         self.session.echo(e.clone());
@@ -738,7 +811,7 @@ impl CadApp {
     pub fn open_path(&mut self, path: &Path) {
         // A LISP file (dropped on the window): loaded as APPLOAD loads it.
         if is_lisp_file(path) {
-            match cadcraft_engine::lisp::builtins::read_text_file(path) {
+            match autocraft_engine::lisp::builtins::read_text_file(path) {
                 Some(text) => self.load_lisp(&path.to_string_lossy(), &text),
                 None => self.open_failed(format!("APPLOAD: can't read {}", path.display())),
             }
@@ -796,7 +869,7 @@ impl CadApp {
     pub fn open_size_error(name: &str, len: u64) -> Option<String> {
         (len > Self::MAX_OPEN_BYTES).then(|| {
             format!(
-                "Open: {name} is {:.1} MB, larger than the {} MB CADCraft opens in the browser",
+                "Open: {name} is {:.1} MB, larger than the {} MB AutoCraft opens in the browser",
                 len as f64 / 1048576.0,
                 Self::MAX_OPEN_BYTES >> 20
             )
@@ -813,7 +886,7 @@ impl CadApp {
         if is_lisp_file(name) {
             return self.load_lisp(name, &String::from_utf8_lossy(bytes));
         }
-        let data = cadcraft_engine::cmd::file::base64_encode(bytes);
+        let data = autocraft_engine::cmd::file::base64_encode(bytes);
         let r = self.run("open", json!({ "data": data, "name": name }));
         self.opened(r);
     }
@@ -843,7 +916,7 @@ impl CadApp {
                     self.set_status(w.to_string());
                 }
                 // A dynamic block's own drawing: ask whether to open it in the Block Editor.
-                if self.session.state().is_ok_and(|st| cadcraft_engine::blockedit::has_authoring_elements(&st.doc)) {
+                if self.session.state().is_ok_and(|st| autocraft_engine::blockedit::has_authoring_elements(&st.doc)) {
                     self.ui.dialog = Some("authoring".into());
                 }
             }
@@ -1085,6 +1158,7 @@ impl CadApp {
         if self.ui.in_window_menu {
             menus::menu_bar(self, ui);
         }
+        ribbon::show(self, ui);
         if self.ui.show_status_bar {
             chrome::status_bar(self, ui);
         }
@@ -1092,7 +1166,7 @@ impl CadApp {
             chrome::file_tabs(self, ui);
         }
         let has_doc = !self.session.docs.is_empty() && !self.ui.start_tab;
-        if has_doc && !self.ui.show_toolsets {
+        if has_doc && !self.ui.show_toolsets && !self.ui.show_ribbon {
             palettes::toolsets_strip(self, ui);
         }
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| {
@@ -1112,6 +1186,9 @@ impl CadApp {
         autosave::show(self, ui.ctx());
         autosave::gpu_notice(self, ui.ctx());
         autosave::failure_notice(self, ui.ctx());
+        if self.caption_buttons {
+            resize_edges(ui.ctx());
+        }
         self.frame_ms = now_ms() - t0;
     }
 
@@ -1197,7 +1274,7 @@ mod tests {
     /// AutoLISP slice) belongs to the frame, not to a pass.
     #[test]
     fn a_two_pass_frame_runs_frame_logic_once() {
-        use cadcraft_engine::lisp::value::Value;
+        use autocraft_engine::lisp::value::Value;
 
         let routine = "(setq cc-two 0) (while (< cc-two 400000) (setq cc-two (1+ cc-two)))";
         let start = |app: &mut CadApp| {
@@ -1234,7 +1311,7 @@ mod tests {
         tx.send(request).expect("the request is queued");
         let ctx = egui::Context::default();
         two_pass_frame(&mut app, &ctx);
-        let entities = app.session.doc().map(cadcraft_doc::Drawing::entity_count).unwrap_or_default();
+        let entities = app.session.doc().map(autocraft_doc::Drawing::entity_count).unwrap_or_default();
         assert_eq!(entities, 1, "one command ran once, in the first pass");
         let reply = reply.wait(Duration::from_secs(1));
         assert_eq!(reply["ok"], true, "{reply}");
@@ -1257,7 +1334,7 @@ mod tests {
     /// Repeated hidden logic-only ticks finish a long Lisp routine (`CC-HIDDEN` reaches 400000) while `ui_frames` stays 0.
     #[test]
     fn hidden_logic_advances_a_long_lisp_routine_without_a_ui_pass() {
-        use cadcraft_engine::lisp::value::Value;
+        use autocraft_engine::lisp::value::Value;
 
         let mut a = CadApp::new(Session::new(), Services::default());
         let ctx = egui::Context::default();
@@ -1368,7 +1445,7 @@ mod tests {
     #[test]
     fn default_save_format_persists_and_names_new_drawings() {
         let mut a = app();
-        assert_eq!(a.ui.save_format, SaveFormat::Dxf, "default keeps DXF, CADCraft's native format");
+        assert_eq!(a.ui.save_format, SaveFormat::Dxf, "default keeps DXF, AutoCraft's native format");
         assert!(a.run("ui.saveformat", json!({ "format": "pdf" })).is_err());
         assert_eq!(a.run("ui.saveformat", json!({ "format": "DWG" })).ok(), Some(json!({ "saveFormat": "dwg" })));
         assert_eq!(a.run("ui.saveformat", json!({})).ok(), Some(json!({ "saveFormat": "dwg" })), "no format: report it");
