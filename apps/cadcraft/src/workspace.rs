@@ -31,6 +31,9 @@ fn snapshot(ui: &UiState) -> Result<Value, String> {
     if ui.collapsed_groups.len() > 64 || ui.collapsed_groups.iter().any(|name| name.len() > 256) {
         return Err("collapsedGroups exceeds the workspace size limit".into());
     }
+    if ui.ribbon_tab.len() > 64 {
+        return Err("ribbonTab exceeds the workspace size limit".into());
+    }
     if ui.history_lines > 12 {
         return Err("historyLines must be between 0 and 12".into());
     }
@@ -40,6 +43,9 @@ fn snapshot(ui: &UiState) -> Result<Value, String> {
         "showToolsets": ui.show_toolsets,
         "showPalettes": ui.show_palettes,
         "showToolbar": ui.show_toolbar,
+        "showRibbon": ui.show_ribbon,
+        "ribbonTab": ui.ribbon_tab,
+        "ribbonMinimized": ui.ribbon_minimized,
         "showFileTabs": ui.show_file_tabs,
         "showStatusBar": ui.show_status_bar,
         "showCommandLine": ui.show_command_line,

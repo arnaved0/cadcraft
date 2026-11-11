@@ -20,7 +20,7 @@
 	% of all commits	Tüm commit'lerin yüzdesi
 	* Wildcard Match	* Joker Karakter Eşleşmesi
 	*VARIES*	*DEĞİŞKEN*
-	+  |  Top  |  2D Wireframe	+  |  Üst  |  2B Tel Kafes
+	[-][Top][2D Wireframe]	[-][Üst][2B Tel Kafes]
 	+Bin	+Bin
 	+LOC	+LOC
 	1 Viewport	1 Görünüm Penceresi
@@ -1221,6 +1221,7 @@
 	Toggle PICKADD (on: picks add to the selection)	PICKADD'i değiştir (açık: seçimler mevcut seçime eklenir)
 	Tolerance...	Tolerans...
 	Tool Bar	Araç Çubuğu
+	Ribbon	Şerit
 	Tool Sets	Araç Takımları
 	Tools	Araçlar
 	Top left	Sol üst

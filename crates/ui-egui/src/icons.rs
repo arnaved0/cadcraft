@@ -158,6 +158,11 @@ pub enum Icon {
     ZoomFit,
     TextStyle,
     DimStyle,
+    Paste,
+    Cut,
+    Group,
+    Ungroup,
+    Wrench,
 }
 
 struct Pen<'a> {
@@ -1002,6 +1007,44 @@ fn paint_navigation_controls(pen: &Pen<'_>, icon: Icon, b: Color32, a: Color32, 
             }
             pen.p.add(egui::Shape::line(outline, Stroke::new(pen.w, a)));
             pen.c(17.5, 17.5, 1.5, a);
+        }
+        Paste => {
+            // A clipboard with a sheet over its lower-right corner.
+            pen.rect(4.0, 5.0, 12.0, 16.0, b);
+            pen.rect(7.0, 3.0, 6.0, 4.0, b);
+            pen.fill_rect(11.0, 10.0, 10.0, 12.0, Tokens::get().panel);
+            pen.rect(11.0, 10.0, 10.0, 12.0, a);
+            pen.la(13.0, 14.0, 19.0, 14.0);
+            pen.la(13.0, 17.0, 19.0, 17.0);
+        }
+        Cut => {
+            // Scissors: two rings and crossing blades.
+            pen.c(7.0, 18.0, 3.0, a);
+            pen.c(17.0, 18.0, 3.0, a);
+            pen.l(9.0, 15.5, 17.0, 3.0);
+            pen.l(15.0, 15.5, 7.0, 3.0);
+        }
+        Group | Ungroup => {
+            // Three shapes inside a dashed frame (crossed out for Ungroup).
+            pen.c(9.0, 9.0, 3.5, a);
+            pen.rect(12.0, 12.0, 7.0, 6.0, b);
+            pen.poly(&[(5.0, 19.0), (8.0, 14.0), (11.0, 19.0)], true, b);
+            let mut x = 2.0;
+            while x < 22.0 {
+                pen.l(x, 2.5, (x + 2.0).min(22.0), 2.5);
+                pen.l(x, 21.5, (x + 2.0).min(22.0), 21.5);
+                pen.l(2.5, x, 2.5, (x + 2.0).min(22.0));
+                pen.l(21.5, x, 21.5, (x + 2.0).min(22.0));
+                x += 4.0;
+            }
+            if icon == Ungroup {
+                pen.p.line_segment([pen.at(4.0, 20.0), pen.at(20.0, 4.0)], Stroke::new(pen.w * 1.4, pen.pt));
+            }
+        }
+        Wrench => {
+            // An open-ended spanner on a diagonal handle.
+            pen.p.line_segment([pen.at(5.0, 19.0), pen.at(14.0, 10.0)], Stroke::new(pen.w * 2.2, b));
+            pen.arc(16.5, 7.5, 4.5, -60.0, 210.0, b);
         }
         Close => {
             pen.l(6.0, 6.0, 18.0, 18.0);

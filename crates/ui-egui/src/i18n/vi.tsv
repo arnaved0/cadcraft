@@ -32,7 +32,7 @@
 	% of all commits	% của tất cả commit
 	* Wildcard Match	* Khớp ký tự đại diện
 	*VARIES*	*KHÁC NHAU*
-	+  |  Top  |  2D Wireframe	+  |  Trên  |  Khung dây 2D
+	[-][Top][2D Wireframe]	[-][Trên][Khung dây 2D]
 	+Bin	+Bin
 	+LOC	+LOC
 	1 Viewport	1 khung nhìn
@@ -1083,6 +1083,7 @@
 	Time	Thời gian
 	To get started, create or open a drawing.	Để bắt đầu, hãy tạo hoặc mở một bản vẽ.
 	Tool Bar	Thanh công cụ
+	Ribbon	Ruy-băng
 	Tool Sets	Bộ công cụ
 	Tools	Công cụ
 	Torus	Xuyến

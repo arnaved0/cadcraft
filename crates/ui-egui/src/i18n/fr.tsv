@@ -10,7 +10,7 @@
 	% of all commits	% de toutes les révisions
 	* Wildcard Match	* Correspondance générique
 	*VARIES*	*DIVER*
-	+  |  Top  |  2D Wireframe	+  |  Dessus  |  Filaire 2D
+	[-][Top][2D Wireframe]	[-][Dessus][Filaire 2D]
 	+Bin	+bin.
 	+LOC	+lignes
 	1 Viewport	1 fenêtre
@@ -919,6 +919,7 @@
 	Time	Heure
 	To get started, create or open a drawing.	Pour commencer, créez ou ouvrez un dessin.
 	Tool Bar	Barre d'outils
+	Ribbon	Ruban
 	Tool Sets	Ensembles d'outils
 	Tools	Outils
 	Torus	Tore

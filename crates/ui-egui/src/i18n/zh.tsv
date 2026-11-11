@@ -10,7 +10,7 @@
 	% of all commits	% 的所有提交
 	* Wildcard Match	* 通配符匹配
 	*VARIES*	*多值*
-	+  |  Top  |  2D Wireframe	+  |  俯视  |  二维线框
+	[-][Top][2D Wireframe]	[-][俯视][二维线框]
 	+Bin	+Bin
 	+LOC	+LOC
 	1 Viewport	1 个视口
@@ -923,6 +923,7 @@
 	Time	时间
 	To get started, create or open a drawing.	若要开始，请创建或打开一个图形。
 	Tool Bar	工具栏
+	Ribbon	功能区
 	Tool Sets	工具集
 	Tools	工具
 	Torus	圆环体

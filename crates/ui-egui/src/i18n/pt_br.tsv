@@ -10,7 +10,7 @@
 	% of all commits	% de todos os commits
 	* Wildcard Match	* Correspondência com curinga
 	*VARIES*	*VARIADO*
-	+  |  Top  |  2D Wireframe	+  |  Superior  |  Wireframe 2D
+	[-][Top][2D Wireframe]	[-][Superior][Wireframe 2D]
 	+Bin	+bin
 	+LOC	+linhas
 	1 Viewport	1 viewport
@@ -1124,6 +1124,7 @@
 	Time	Hora
 	To get started, create or open a drawing.	Para começar, crie ou abra um desenho.
 	Tool Bar	Barra de ferramentas
+	Ribbon	Faixa de opções
 	Tool Sets	Conjuntos de ferramentas
 	Tools	Ferramentas
 	Torus	Toro

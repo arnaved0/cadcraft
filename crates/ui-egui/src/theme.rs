@@ -124,6 +124,8 @@ pub struct Tokens {
     pub crosshair: Color32,
     /// The sheet of paper on a layout tab.
     pub paper: Color32,
+    /// The quick access bar and the ribbon's tab row along the top of the window.
+    pub title_bar: Color32,
 }
 
 impl Tokens {
@@ -135,7 +137,7 @@ impl Tokens {
         control: Color32::from_rgb(0x50, 0x5a, 0x6d),
         control_hover: Color32::from_rgb(0x5c, 0x67, 0x7c),
         border: Color32::from_rgb(0x23, 0x29, 0x30),
-        canvas: Color32::from_rgb(0x22, 0x28, 0x2f),
+        canvas: Color32::from_rgb(0x21, 0x28, 0x30),
         grid_minor: Color32::from_rgb(0x29, 0x30, 0x3a),
         grid_major: Color32::from_rgb(0x31, 0x39, 0x45),
         axis_x: Color32::from_rgb(0x56, 0x28, 0x29),
@@ -172,6 +174,7 @@ impl Tokens {
         warn: Color32::from_rgb(0xff, 0xd0, 0x80),
         crosshair: Color32::from_rgb(0xe8, 0xe8, 0xe8),
         paper: Color32::WHITE,
+        title_bar: Color32::from_rgb(0x26, 0x2c, 0x35),
     };
 
     /// Light grey chrome with dark text. The drawing-area colours (canvas, grid, axes, selection,
@@ -202,6 +205,7 @@ impl Tokens {
         list_bg: Color32::from_rgb(0xfb, 0xfc, 0xfd),
         list_row: Color32::from_rgb(0xe3, 0xe8, 0xef),
         warn: Color32::from_rgb(0x8a, 0x53, 0x00),
+        title_bar: Color32::from_rgb(0xd0, 0xd5, 0xdc),
         ..Tokens::DARK
     };
 

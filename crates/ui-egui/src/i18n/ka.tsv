@@ -42,7 +42,7 @@
 	% of all commits	ყველა კომიტის %
 	* Wildcard Match	* შაბლონით დამთხვევა
 	*VARIES*	*სხვადასხვა*
-	+  |  Top  |  2D Wireframe	+  |  ზედა  |  2D კარკასი
+	[-][Top][2D Wireframe]	[-][ზედა][2D კარკასი]
 	+Bin	+Bin
 	+LOC	+LOC
 	1 Viewport	1 ხედვის არე
@@ -1139,6 +1139,7 @@
 	Time	დრო
 	To get started, create or open a drawing.	დასაწყებად შექმენით ან გახსენით ნახაზი.
 	Tool Bar	ხელსაწყოთა ზოლი
+	Ribbon	ლენტი
 	Tool Sets	ხელსაწყოთა ნაკრებები
 	Tools	ხელსაწყოები
 	Torus	ტორი

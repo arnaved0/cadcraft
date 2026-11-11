@@ -21,7 +21,7 @@
 	% of all commits	Commitok aránya (%)
 	* Wildcard Match	* Helyettesítő karakteres egyezés
 	*VARIES*	*ELTÉRŐ*
-	+  |  Top  |  2D Wireframe	+  |  Felülnézet  |  2D drótváz
+	[-][Top][2D Wireframe]	[-][Felülnézet][2D drótváz]
 	+Bin	+bin
 	+LOC	+sor
 	1 Viewport	1 nézetablak
@@ -1220,6 +1220,7 @@
 	Toggle PICKADD (on: picks add to the selection)	PICKADD váltása (be: a kattintások a kijelöléshez adnak)
 	Tolerance...	Tűrés...
 	Tool Bar	Eszköztár
+	Ribbon	Szalag
 	Tool Sets	Eszközkészletek
 	Tools	Eszközök
 	Top left	Bal felső

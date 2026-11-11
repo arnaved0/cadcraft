@@ -33,7 +33,7 @@
 	% of all commits	% усіх комітів
 	* Wildcard Match	* За шаблоном
 	*VARIES*	*РІЗНІ*
-	+  |  Top  |  2D Wireframe	+  |  Зверху  |  2D-каркас
+	[-][Top][2D Wireframe]	[-][Зверху][2D-каркас]
 	+Bin	+двійк.
 	+LOC	+рядків
 	1 Viewport	1 видовий екран
@@ -1135,6 +1135,7 @@
 	Time	Час
 	To get started, create or open a drawing.	Щоб почати, створіть або відкрийте креслення.
 	Tool Bar	Панель інструментів
+	Ribbon	Стрічка
 	Tool Sets	Набори інструментів
 	Tools	Інструменти
 	Torus	Тор

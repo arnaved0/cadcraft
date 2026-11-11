@@ -31,7 +31,7 @@
 	% of all commits	전체 커밋 중 비율(%)
 	* Wildcard Match	* 와일드카드 일치
 	*VARIES*	*다양함*
-	+  |  Top  |  2D Wireframe	+  |  평면  |  2D 와이어프레임
+	[-][Top][2D Wireframe]	[-][평면][2D 와이어프레임]
 	+Bin	+Bin
 	+LOC	+LOC
 	1 Viewport	뷰포트 1개
@@ -1080,6 +1080,7 @@
 	Time	시간
 	To get started, create or open a drawing.	시작하려면 도면을 만들거나 여세요.
 	Tool Bar	도구 막대
+	Ribbon	리본
 	Tool Sets	도구 세트
 	Tools	도구
 	Torus	원환체

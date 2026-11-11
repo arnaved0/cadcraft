@@ -33,7 +33,7 @@
 	% of all commits	% svih commitova
 	* Wildcard Match	* Podudaranje zamjenskim znakom
 	*VARIES*	*RAZLIČITO*
-	+  |  Top  |  2D Wireframe	+  |  Vrh  |  2D žičani model
+	[-][Top][2D Wireframe]	[-][Vrh][2D žičani model]
 	+Bin	+Bin
 	+LOC	+LOC
 	1 Viewport	1 prozor prikaza
@@ -1083,6 +1083,7 @@
 	Time	Vrijeme
 	To get started, create or open a drawing.	Za početak kreirajte ili otvorite crtež.
 	Tool Bar	Traka s alatima
+	Ribbon	Traka
 	Tool Sets	Skupovi alata
 	Tools	Alati
 	Torus	Torus

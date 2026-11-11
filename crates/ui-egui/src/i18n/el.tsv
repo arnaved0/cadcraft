@@ -6,7 +6,7 @@
 	% of all commits	% όλων των υποβολών κώδικα
 	* Wildcard Match	* Αντιστοίχιση με χαρακτήρες μπαλαντέρ
 	*VARIES*	*ΜΕΤΑΒΑΛΛΕΤΑΙ*
-	+  |  Top  |  2D Wireframe	+  |  Κάτοψη  |  2Δ συρμάτινο μοντέλο (Wireframe)
+	[-][Top][2D Wireframe]	[-][Κάτοψη][2Δ συρμάτινο μοντέλο (Wireframe)]
 	+Bin	+Δυαδικά αρχεία
 	+LOC	+Γραμμές κώδικα
 	1 Viewport	1 παράθυρο προβολής (Viewport)
@@ -1210,6 +1210,7 @@
 	Toggle PICKADD (on: picks add to the selection)	Εναλλαγή PICKADD (ενεργό: οι νέες επιλογές προστίθενται)
 	Tolerance...	Ανοχές (Tolerance)...
 	Tool Bar	Γραμμή εργαλείων
+	Ribbon	Κορδέλα
 	Tool Sets	Σύνολα εργαλείων
 	Tools	Εργαλεία
 	TOP	ΚΑΤΟΨΗ

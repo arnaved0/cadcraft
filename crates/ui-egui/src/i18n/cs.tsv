@@ -31,7 +31,7 @@
 	% of all commits	% všech commitů
 	* Wildcard Match	* Shoda se zástupnými znaky
 	*VARIES*	*RŮZNÉ*
-	+  |  Top  |  2D Wireframe	+  |  Shora  |  2D drátový model
+	[-][Top][2D Wireframe]	[-][Shora][2D drátový model]
 	+Bin	+Bin
 	+LOC	+LOC
 	1 Viewport	1 výřez
@@ -1081,6 +1081,7 @@
 	Time	Čas
 	To get started, create or open a drawing.	Začněte vytvořením nebo otevřením výkresu.
 	Tool Bar	Panel nástrojů
+	Ribbon	Pás karet
 	Tool Sets	Sady nástrojů
 	Tools	Nástroje
 	Torus	Anuloid

@@ -10,7 +10,7 @@
 	% of all commits	% من كل الإيداعات
 	* Wildcard Match	* مطابقة أحرف البدل
 	*VARIES*	*متفاوت*
-	+  |  Top  |  2D Wireframe	+  |  علوي  |  هيكل سلكي ثنائي الأبعاد
+	[-][Top][2D Wireframe]	[-][علوي][هيكل سلكي ثنائي الأبعاد]
 	+Bin	+Bin
 	+LOC	+LOC
 	1 Viewport	إطار عرض واحد
@@ -1126,6 +1126,7 @@
 	Toggle PICKADD (on: picks add to the selection)	تبديل PICKADD (تشغيل: تُضاف الاختيارات إلى التحديد)
 	Tolerance...	تفاوت...
 	Tool Bar	شريط الأدوات
+	Ribbon	الشريط
 	Tool Sets	مجموعات الأدوات
 	Tools	أدوات
 	Torus	حلقي

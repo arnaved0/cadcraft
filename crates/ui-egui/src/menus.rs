@@ -97,6 +97,7 @@ pub const UI_COMMANDS: &[(&str, &str, &[&str], Option<&str>)] = &[
     ("ui.animations.off", "Off", &["View", "Accessibility", "Animation Effects", "Off"], None),
     ("ui.animations", "Animation Effects", &[], None),
     ("ui.toggle.toolbar", "Tool Bar", &["Window", "Tool Bar"], None),
+    ("ui.toggle.ribbon", "Ribbon", &["Window", "Ribbon"], None),
     ("ui.toggle.filetabs", "File Tab", &["Window", "File Tab"], None),
     ("ui.toggle.statusbar", "Status Bar", &["Window", "Status Bar"], None),
     ("ui.toggle.cmdline", "Command Line", &["Window", "Command Line"], Some("Cmd+9")),
@@ -279,6 +280,13 @@ fn run_ui_toggle_command(app: &mut CadApp, id: &str, params: &Value) -> Option<R
         "ui.toggle.palettes" => {
             toggle(&mut app.ui.show_palettes, params);
             Ok(Value::Null)
+        }
+        "ui.toggle.ribbon" => {
+            // The ribbon comes and goes with its workspace (Tool Sets and palettes the other way).
+            let mut on = app.ui.show_ribbon;
+            toggle(&mut on, params);
+            crate::chrome::set_workspace(app, on);
+            Ok(json!({ "on": on }))
         }
         "ui.toggle.toolbar" => {
             toggle(&mut app.ui.show_toolbar, params);

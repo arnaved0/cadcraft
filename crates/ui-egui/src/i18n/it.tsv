@@ -36,7 +36,7 @@ menu	Modify	Edita
 	% of all commits	% di tutti i commit
 	* Wildcard Match	* Corrispondenza con caratteri jolly
 	*VARIES*	*VARIA*
-	+  |  Top  |  2D Wireframe	+  |  Alto  |  Wireframe 2D
+	[-][Top][2D Wireframe]	[-][Alto][Wireframe 2D]
 	+Bin	+Bin
 	+LOC	+LOC
 	1 Viewport	1 finestra
@@ -1090,6 +1090,7 @@ menu	Modify	Edita
 	Time	Tempo
 	To get started, create or open a drawing.	Per iniziare, crea o apri un disegno.
 	Tool Bar	Barra degli strumenti
+	Ribbon	Barra multifunzione
 	Tool Sets	Set di strumenti
 	Tools	Strumenti
 	Torus	Toro

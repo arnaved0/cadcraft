@@ -63,7 +63,46 @@ pub(super) fn draw_ucs_icon(p: &egui::Painter, rect: Rect) {
 pub(super) fn viewport_label(p: &egui::Painter, rect: Rect) {
     let t = Tokens::get();
     let at = pos2(rect.left() + 10.0, rect.top() + 8.0);
-    p.text(at, egui::Align2::LEFT_TOP, crate::tl!("+  |  Top  |  2D Wireframe"), crate::theme::small(), t.canvas_ink);
+    p.text(at, egui::Align2::LEFT_TOP, crate::tl!("[-][Top][2D Wireframe]"), crate::theme::small(), t.canvas_ink);
+}
+
+/// The navigation bar under the ViewCube: a narrow column of view tools along the right edge.
+pub(super) fn navigation_bar(app: &mut CadApp, ui: &mut egui::Ui, rect: Rect) {
+    const TOOLS: &[(crate::icons::Icon, &str, &str)] = &[
+        (crate::icons::Icon::Pan, "pan", "Pan"),
+        (crate::icons::Icon::ZoomExtents, "zoom.extents", "Zoom Extents"),
+        (crate::icons::Icon::ZoomWindow, "zoom.window", "Zoom Window"),
+        (crate::icons::Icon::Orbit, "3dorbit", "Orbit"),
+    ];
+    let t = Tokens::get();
+    let cube = crate::viewcube::Layout::new(rect);
+    let (w, cell) = (26.0, 26.0);
+    let top = if app.ui.show_viewcube { cube.pill.bottom() + 16.0 } else { rect.top() + 16.0 };
+    let bar = Rect::from_min_size(pos2(rect.right() - w - 8.0, top), vec2(w, cell * TOOLS.len() as f32 + 6.0));
+    if bar.bottom() > rect.bottom() - 60.0 {
+        return;
+    }
+    // One widget under the whole bar keeps clicks and the wheel off the drawing.
+    let _ = ui.interact(bar, ui.scope_id().with("navbar"), egui::Sense::click());
+    let p = ui.painter_at(rect);
+    p.rect_filled(bar, 3.0, Color32::from_rgba_unmultiplied(0x3b, 0x44, 0x53, 0xd8));
+    p.rect_stroke(bar, 3.0, Stroke::new(1.0, t.border), egui::StrokeKind::Inside);
+    let mut start = None;
+    for (i, (icon, cmd, label)) in TOOLS.iter().enumerate() {
+        let br = Rect::from_min_size(pos2(bar.left() + 2.0, bar.top() + 3.0 + i as f32 * cell), vec2(w - 4.0, cell - 2.0));
+        let resp = ui.interact(br, ui.scope_id().with(("navbar", *cmd)), egui::Sense::click());
+        if resp.hovered() {
+            p.rect_filled(br, 2.0, t.control_hover);
+        }
+        crate::icons::paint(&p, br.shrink(4.0), *icon, false);
+        crate::icons::describe_control(ui, &resp, label, None, false);
+        if resp.on_hover_text(crate::i18n::t(label)).clicked() {
+            start = Some(*cmd);
+        }
+    }
+    if let Some(cmd) = start {
+        crate::menus::activate(app, cmd);
+    }
 }
 
 pub(super) fn draw_viewcube(app: &mut CadApp, ui: &mut egui::Ui, rect: Rect) {

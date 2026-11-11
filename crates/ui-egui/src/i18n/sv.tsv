@@ -14,7 +14,7 @@
 	% of all commits	% av alla commits
 	* Wildcard Match	* Jokerteckenmatchning
 	*VARIES*	*VARIERAR*
-	+  |  Top  |  2D Wireframe	+  |  Ovanifrån  |  2D-trådmodell
+	[-][Top][2D Wireframe]	[-][Ovanifrån][2D-trådmodell]
 	+Bin	+Bin
 	+LOC	+LOC
 	1 Viewport	1 vyfönster
@@ -1122,6 +1122,7 @@
 	Time	Tid
 	To get started, create or open a drawing.	Kom igång genom att skapa eller öppna en ritning.
 	Tool Bar	Verktygsfält
+	Ribbon	Menyfliksområde
 	Tool Sets	Verktygsuppsättningar
 	Tools	Verktyg
 	Torus	Torus

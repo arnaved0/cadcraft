@@ -10,7 +10,7 @@
 	% of all commits	% de todos los commits
 	* Wildcard Match	* Coincidencia con comodines
 	*VARIES*	*VARIOS*
-	+  |  Top  |  2D Wireframe	+  |  Superior  |  Estructura alámbrica 2D
+	[-][Top][2D Wireframe]	[-][Superior][Estructura alámbrica 2D]
 	+Bin	+Bin
 	+LOC	+Líneas
 	1 Viewport	1 ventana gráfica
@@ -1129,6 +1129,7 @@
 	Time	Tiempo
 	To get started, create or open a drawing.	Para empezar, crea o abre un dibujo.
 	Tool Bar	Barra de herramientas
+	Ribbon	Cinta de opciones
 	Tool Sets	Conjuntos de herramientas
 	Tools	Herramientas
 	Torus	Toroide

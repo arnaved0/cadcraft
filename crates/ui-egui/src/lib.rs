@@ -62,6 +62,7 @@ pub mod palettes;
 pub mod parametric;
 pub mod plotstyles;
 pub mod quick;
+pub mod ribbon;
 pub mod save_loss;
 pub mod shortcut_menus;
 pub mod theme;
@@ -96,7 +97,14 @@ pub struct UiState {
     pub interface_language: i18n::Preference,
     pub show_toolsets: bool,
     pub show_palettes: bool,
+    /// The quick access bar (the small command icons in the title row).
     pub show_toolbar: bool,
+    /// The ribbon of command tabs and panels under the quick access bar.
+    pub show_ribbon: bool,
+    /// The ribbon tab shown ([`ribbon::TABS`] name).
+    pub ribbon_tab: String,
+    /// Only the ribbon's tab row shows; clicking a tab brings its panels back.
+    pub ribbon_minimized: bool,
     pub show_file_tabs: bool,
     pub show_status_bar: bool,
     pub show_command_line: bool,
@@ -186,6 +194,19 @@ impl SaveFormat {
     }
 }
 
+impl UiState {
+    /// The Drafting & Annotation workspace: the quick access bar and ribbon over an uncluttered
+    /// drawing area, with Tool Sets, the palettes and the in-window menu bar put away (the
+    /// application menu holds every menu). New installs start in it.
+    pub fn use_ribbon_workspace(&mut self) {
+        self.show_ribbon = true;
+        self.show_toolbar = true;
+        self.show_toolsets = false;
+        self.show_palettes = false;
+        self.in_window_menu = false;
+    }
+}
+
 impl Default for UiState {
     fn default() -> Self {
         UiState {
@@ -195,6 +216,9 @@ impl Default for UiState {
             show_toolsets: true,
             show_palettes: true,
             show_toolbar: true,
+            show_ribbon: false,
+            ribbon_tab: "Home".into(),
+            ribbon_minimized: false,
             show_file_tabs: true,
             show_status_bar: true,
             show_command_line: true,
@@ -1085,6 +1109,7 @@ impl CadApp {
         if self.ui.in_window_menu {
             menus::menu_bar(self, ui);
         }
+        ribbon::show(self, ui);
         if self.ui.show_status_bar {
             chrome::status_bar(self, ui);
         }
@@ -1092,7 +1117,7 @@ impl CadApp {
             chrome::file_tabs(self, ui);
         }
         let has_doc = !self.session.docs.is_empty() && !self.ui.start_tab;
-        if has_doc && !self.ui.show_toolsets {
+        if has_doc && !self.ui.show_toolsets && !self.ui.show_ribbon {
             palettes::toolsets_strip(self, ui);
         }
         egui::CentralPanel::default().frame(egui::Frame::NONE.fill(t.canvas)).show(ui, |ui| {

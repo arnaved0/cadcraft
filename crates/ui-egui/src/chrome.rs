@@ -9,6 +9,7 @@ use crate::theme::Tokens;
 
 pub mod annoscale;
 
+/// The Tool Sets & Palettes workspace's Tool Bar: (icon, command, tooltip, shortcut).
 const TOOLBAR: &[&[(Icon, &str, &str, Option<&str>)]] = &[
     &[
         (Icon::New, "new", "New Drawing", Some("Cmd+N")),
@@ -40,6 +41,43 @@ const TOOLBAR: &[&[(Icon, &str, &str, Option<&str>)]] = &[
     &[(Icon::Help, "ui.dialog.about", "Help", None)],
 ];
 
+/// The quick access bar's commands, in groups: (icon, command, tooltip, shortcut).
+const QUICK_ACCESS: &[&[(Icon, &str, &str, Option<&str>)]] = &[
+    &[
+        (Icon::New, "new", "New Drawing", Some("Cmd+N")),
+        (Icon::Open, "open", "Open", Some("Cmd+O")),
+        (Icon::Save, "qsave", "Save", Some("Cmd+S")),
+        (Icon::SaveAs, "saveas", "Save As", None),
+        (Icon::Plot, "plot", "Print", None),
+    ],
+    &[(Icon::Undo, "u", "Undo", Some("Cmd+Z")), (Icon::Redo, "redo", "Redo", Some("Cmd+Shift+Z"))],
+    &[(Icon::Share, "share", "Share", None)],
+];
+
+/// Height of the quick access bar where the system draws the window's own title bar.
+const QUICK_ACCESS_BAR: f32 = 30.0;
+
+/// The workspaces offered by the quick access bar: (name, ribbon, Tool Sets and palettes).
+pub const WORKSPACES: &[(&str, bool)] = &[("Drafting & Annotation", true), ("Tool Sets & Palettes", false)];
+
+/// The current workspace's name: the ribbon layout, or the Tool Sets and palettes one.
+pub fn workspace_name(app: &CadApp) -> &'static str {
+    let ribbon = app.ui.show_ribbon && !app.ui.show_toolsets;
+    WORKSPACES.iter().find(|(_, r)| *r == ribbon).map_or("Drafting & Annotation", |(n, _)| n)
+}
+
+/// Switch to a workspace from [`WORKSPACES`].
+pub fn set_workspace(app: &mut CadApp, ribbon: bool) {
+    if ribbon {
+        app.ui.use_ribbon_workspace();
+    } else {
+        app.ui.show_ribbon = false;
+        app.ui.show_toolsets = true;
+        app.ui.show_palettes = true;
+        app.ui.in_window_menu = !cfg!(target_os = "macos");
+    }
+}
+
 /// Height of the macOS integrated title row (#161). AppKit draws the traffic lights itself,
 /// centred in the standard 28 pt title-bar band at the top of the window; moving them would take
 /// AppKit calls (`unsafe`, which the workspace forbids). So the title row is that band, and what
@@ -61,8 +99,173 @@ fn title_left(left: f32, width: f32, text_w: f32) -> f32 {
     (left + (width - text_w) / 2.0).max(left + MAC_CONTENT_LEFT)
 }
 
-/// Title row (with the integrated macOS title bar) and the Tool Bar.
+/// The application menu: every menu of the menu bar, from the button at the left of the quick
+/// access bar.
+fn application_menu(app: &mut CadApp, ui: &mut egui::Ui, rect: Rect) {
+    let t = Tokens::get();
+    let resp = ui.interact(rect, ui.scope_id().with("app_menu"), Sense::click());
+    let fill = if resp.hovered() { t.accent } else { t.accent.gamma_multiply(0.85) };
+    ui.painter().rect_filled(rect, 3.0, fill);
+    // Three bars and a drafting-compass point: CADCraft's own mark for the menu.
+    let c = rect.center() - vec2(4.0, 0.0);
+    for dy in [-4.0, 0.0, 4.0] {
+        ui.painter().hline((c.x - 6.0)..=(c.x + 6.0), c.y + dy, Stroke::new(1.6, egui::Color32::WHITE));
+    }
+    let k = pos2(rect.right() - 7.0, rect.center().y);
+    ui.painter().add(egui::Shape::convex_polygon(
+        vec![k + vec2(-3.0, -1.5), k + vec2(3.0, -1.5), k + vec2(0.0, 2.0)],
+        egui::Color32::WHITE,
+        Stroke::NONE,
+    ));
+    icons::describe_control(ui, &resp, "Application Menu", None, false);
+    let mut clicked = None;
+    let tree = crate::menus::tree(app);
+    egui::Popup::menu(&resp).show(|ui| {
+        ui.set_min_width(180.0);
+        for (name, entries) in &tree {
+            ui.menu_button(crate::i18n::menu(name), |ui| {
+                for e in entries {
+                    crate::menus::entry_ui(ui, e, &mut clicked);
+                }
+            });
+        }
+    });
+    resp.on_hover_text(crate::tl!("Application Menu"));
+    if let Some(id) = clicked {
+        crate::menus::activate(app, &id);
+    }
+}
+
+/// The workspace list in the quick access bar; returns its right edge.
+fn workspace_switch(app: &mut CadApp, ui: &mut egui::Ui, x: f32, cy: f32) -> f32 {
+    let t = Tokens::get();
+    let name = workspace_name(app);
+    let galley = ui.painter().layout_no_wrap(crate::i18n::t(name).to_string(), crate::theme::small(), t.text);
+    let rect = Rect::from_min_size(pos2(x, cy - 10.0), vec2(galley.size().x + 40.0, 20.0));
+    let resp = ui.interact(rect, ui.scope_id().with("workspace_switch"), Sense::click());
+    if resp.hovered() {
+        ui.painter().rect_filled(rect, 3.0, t.control_hover.gamma_multiply(0.6));
+    }
+    icons::paint(ui.painter(), Rect::from_center_size(pos2(rect.left() + 10.0, cy), vec2(14.0, 14.0)), Icon::Gear, false);
+    ui.painter().galley(pos2(rect.left() + 21.0, cy - galley.size().y / 2.0), galley, t.text);
+    let k = pos2(rect.right() - 8.0, cy);
+    ui.painter().add(egui::Shape::convex_polygon(vec![k + vec2(-3.0, -1.5), k + vec2(3.0, -1.5), k + vec2(0.0, 2.0)], t.text_dim, Stroke::NONE));
+    icons::describe_control(ui, &resp, "Workspace", None, false);
+    let mut pick = None;
+    egui::Popup::menu(&resp).show(|ui| {
+        for (n, ribbon) in WORKSPACES {
+            if ui.add(egui::Button::selectable(*n == name, crate::i18n::t(n))).clicked() {
+                pick = Some(*ribbon);
+                ui.close();
+            }
+        }
+    });
+    if let Some(ribbon) = pick {
+        set_workspace(app, ribbon);
+    }
+    rect.right()
+}
+
+/// The quick access bar along the top of the window: the application menu, the quick access
+/// commands, the workspace list and, with the integrated macOS title bar, the drawing's title.
 pub fn title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
+    if !app.ui.show_ribbon {
+        classic_title_and_toolbar(app, ui);
+        return;
+    }
+    let t = Tokens::get();
+    let bar_h = if app.integrated_titlebar {
+        MAC_TITLE_BAR
+    } else if app.ui.show_toolbar {
+        QUICK_ACCESS_BAR
+    } else {
+        0.0
+    };
+    if bar_h <= 0.0 {
+        return;
+    }
+    egui::Panel::top("cc_title_toolbar").exact_size(bar_h).frame(egui::Frame::NONE.fill(t.title_bar)).show(ui, |ui| {
+        let r = ui.max_rect();
+        if app.integrated_titlebar {
+            // The empty row moves the window; it goes first so later widgets take their own clicks.
+            craft_window::title_bar::empty_area(ui, r);
+        }
+        let cy = r.center().y;
+        let mut x = r.left() + if app.integrated_titlebar { MAC_CONTENT_LEFT } else { 6.0 };
+        let mut qat_right = x;
+        if app.ui.show_toolbar {
+            application_menu(app, ui, Rect::from_min_size(pos2(x, cy - 10.0), vec2(34.0, 20.0)));
+            x += 42.0;
+            let size = 22.0;
+            let mut clicked = None;
+            let mac = ui.ctx().os().is_mac();
+            for (g, group) in QUICK_ACCESS.iter().enumerate() {
+                if g > 0 {
+                    ui.painter().vline(x + 3.0, (cy - 7.0)..=(cy + 7.0), Stroke::new(1.0, t.border));
+                    x += 8.0;
+                }
+                for (icon, cmd, label, shortcut) in group.iter() {
+                    if x + size > r.right() - 8.0 {
+                        break;
+                    }
+                    let br = Rect::from_min_size(pos2(x, cy - size / 2.0), vec2(size, size));
+                    let resp = ui.interact(br, ui.scope_id().with(("tb", *cmd)), Sense::click());
+                    if resp.hovered() {
+                        ui.painter().rect_filled(br, 3.0, t.control_hover.gamma_multiply(0.6));
+                    }
+                    icons::paint(ui.painter(), br.shrink(3.5), *icon, false);
+                    let tip = match shortcut {
+                        Some(sc) => format!("{} ({})", crate::i18n::t(label), crate::menus::shortcut_label(sc, mac)),
+                        None => crate::i18n::t(label).to_string(),
+                    };
+                    icons::describe_control(ui, &resp, &tip, None, false);
+                    if resp.on_hover_text(tip).clicked() {
+                        clicked = Some(*cmd);
+                    }
+                    x += size + 2.0;
+                }
+            }
+            x += 10.0;
+            if x + 200.0 < r.right() - 40.0 {
+                x = workspace_switch(app, ui, x, cy) + 8.0;
+            }
+            qat_right = x;
+            // Help at the far right, like the info centre's help button.
+            let hr = Rect::from_min_size(pos2(r.right() - 30.0, cy - size / 2.0), vec2(size, size));
+            if hr.left() > qat_right {
+                let resp = ui.interact(hr, ui.scope_id().with("tb_help"), Sense::click());
+                if resp.hovered() {
+                    ui.painter().rect_filled(hr, 3.0, t.control_hover.gamma_multiply(0.6));
+                }
+                icons::paint(ui.painter(), hr.shrink(3.5), Icon::Help, false);
+                icons::describe_control(ui, &resp, "Help", None, false);
+                if resp.on_hover_text(crate::tl!("Help")).clicked() {
+                    clicked = Some("ui.dialog.about");
+                }
+            }
+            if let Some(c) = clicked {
+                app.start(c);
+            }
+        }
+        if app.integrated_titlebar {
+            let title = match app.session.state() {
+                Ok(st) if !app.ui.start_tab => format!("CADCraft      {}{}", st.title, if st.title.contains('.') { "" } else { ".dwg" }),
+                _ => format!("CADCraft      {}", crate::tl!("Start")),
+            };
+            // Centred on the traffic lights' centre line (the row's middle): with the system font
+            // the capitals' middle is the text box's middle, so no optical nudge.
+            let galley = ui.painter().layout_no_wrap(title, egui::FontId::proportional(13.0), t.text_dim);
+            let tx = title_left(r.left(), r.width(), galley.size().x);
+            if tx > qat_right + 8.0 && tx + galley.size().x < r.right() - 40.0 {
+                ui.painter().galley(pos2(tx, r.top() + (bar_h - galley.size().y) / 2.0), galley, t.text_dim);
+            }
+        }
+    });
+}
+
+/// The Tool Sets & Palettes workspace's title row (with the integrated macOS title bar) and
+/// full Tool Bar.
+fn classic_title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
     let t = Tokens::get();
     let title_h = if app.integrated_titlebar { MAC_TITLE_BAR } else { 0.0 };
     let tb_h = if app.ui.show_toolbar { 34.0 } else { 0.0 };
@@ -166,7 +369,7 @@ pub fn title_and_toolbar(app: &mut CadApp, ui: &mut egui::Ui) {
     });
 }
 
-/// File tabs: switcher, "+", Start, open drawings.
+/// File tabs: switcher, Start, open drawings, then "+".
 pub fn file_tabs(app: &mut CadApp, ui: &mut egui::Ui) {
     let t = Tokens::get();
     egui::Panel::top("cc_file_tabs").exact_size(26.0).frame(egui::Frame::NONE.fill(t.chrome_dark)).show(ui, |ui| {
@@ -174,15 +377,6 @@ pub fn file_tabs(app: &mut CadApp, ui: &mut egui::Ui) {
         let mut x = r.left() + 4.0;
         let ib = Rect::from_min_size(pos2(x, r.top() + 4.0), vec2(18.0, 18.0));
         icons::paint(ui.painter(), ib.shrink(1.0), Icon::Switcher, false);
-        x += 24.0;
-        let plus = Rect::from_min_size(pos2(x, r.top() + 4.0), vec2(18.0, 18.0));
-        let presp = ui.interact(plus, ui.scope_id().with("tab+"), Sense::click());
-        icons::paint(ui.painter(), plus.shrink(2.0), Icon::Plus, false);
-        icons::describe_control(ui, &presp, "New Drawing", None, false);
-        if presp.on_hover_text(crate::tl!("New Drawing")).clicked() {
-            app.start("new");
-            app.ui.start_tab = false;
-        }
         x += 24.0;
         // `label` is the drawing's name; `dirty` adds the unsaved-changes mark, kept visible when a
         // long name is cut short.
@@ -248,6 +442,18 @@ pub fn file_tabs(app: &mut CadApp, ui: &mut egui::Ui) {
             if x {
                 close = Some(i);
             }
+        }
+        // "+" after the last drawing opens a new one.
+        let plus = Rect::from_min_size(pos2(x + 4.0, r.top() + 4.0), vec2(18.0, 18.0));
+        let presp = ui.interact(plus, ui.scope_id().with("tab+"), Sense::click());
+        if presp.hovered() {
+            ui.painter().rect_filled(plus, 3.0, t.control_hover.gamma_multiply(0.6));
+        }
+        icons::paint(ui.painter(), plus.shrink(2.0), Icon::Plus, false);
+        icons::describe_control(ui, &presp, "New Drawing", None, false);
+        if presp.on_hover_text(crate::tl!("New Drawing")).clicked() {
+            app.start("new");
+            app.ui.start_tab = false;
         }
         if let Some(i) = switch_to {
             let _ = app.run("document.switch", json!({ "index": i }));
@@ -376,7 +582,7 @@ pub fn status_bar(app: &mut CadApp, ui: &mut egui::Ui) {
             (Icon::DynInput, s.dynmode, "dynmode", "Dynamic Input (F12)"),
             (Icon::QuickProps, s.qpmode, "qpmode", "Quick Properties"),
             (Icon::Annotation, anno_all, "annovisible.toggle", "Annotation Visibility"),
-            (Icon::Workspace, false, "ui.noop", "Workspace Switching"),
+            (Icon::Workspace, app.ui.show_ribbon, "ui.toggle.ribbon", "Workspace Switching"),
             (Icon::Gear, false, "ui.dialog.dsettings", "Drafting Settings"),
         ];
         let size = 20.0;

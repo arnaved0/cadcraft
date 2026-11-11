@@ -448,6 +448,44 @@ pub fn submit(app: &mut CadApp) {
     app.cmdline_or(&text, completion.map(|s| s.id.to_ascii_lowercase()).as_deref());
 }
 
+/// The command line's handle at the left end of `bar`: a grip, close and customize, on a darker
+/// strip. Returns its rectangle.
+fn handle(app: &mut CadApp, ui: &mut egui::Ui, p: &egui::Painter, bar: Rect) -> Rect {
+    let t = Tokens::get();
+    let h = bar.height();
+    // The handle: a grip, close and customize, on a darker strip.
+    let handle = Rect::from_min_size(bar.min, vec2(HANDLE_W, h));
+    p.rect_filled(handle.shrink(1.0), egui::CornerRadius { nw: 3, sw: 3, ne: 0, se: 0 }, t.chrome_dark);
+    for k in 0..4 {
+        p.circle_filled(pos2(handle.left() + 5.0, handle.top() + 6.0 + k as f32 * 4.0), 0.9, t.text_faint);
+    }
+    let mut handle_cmd = None;
+    for (i, (icon, cmd, label)) in
+        [(crate::icons::Icon::Close, "ui.toggle.cmdline", "Close Command Line"), (crate::icons::Icon::Wrench, "options", "Customize")]
+            .into_iter()
+            .enumerate()
+    {
+        let br = Rect::from_center_size(pos2(handle.left() + 18.0 + i as f32 * 18.0, bar.center().y), vec2(16.0, 16.0));
+        let resp = ui.interact(br, ui.scope_id().with(("cmd_handle", i)), Sense::click());
+        if resp.hovered() {
+            p.rect_filled(br, 2.0, t.control_hover);
+        }
+        crate::icons::paint(p, br.shrink(2.0), icon, false);
+        crate::icons::describe_control(ui, &resp, label, None, false);
+        if resp.on_hover_text(crate::i18n::t(label)).clicked() {
+            handle_cmd = Some(cmd);
+        }
+    }
+    if let Some(cmd) = handle_cmd {
+        crate::menus::activate(app, cmd);
+    }
+    p.vline(handle.right(), bar.y_range().shrink(3.0), Stroke::new(1.0, t.cmd_border));
+    handle
+}
+
+/// Width of the command line's handle (grip, close, customize) at its left end.
+const HANDLE_W: f32 = 50.0;
+
 fn visible_lines(app: &CadApp, canvas: Rect, bar: Rect) -> usize {
     let available = ((bar.top() - canvas.top() - 8.0).max(0.0) / LINE_H) as usize;
     app.ui.history_lines.min(MAX_LINES).min(available)
@@ -474,9 +512,10 @@ pub fn show(app: &mut CadApp, ui: &mut egui::Ui, canvas: Rect) {
     }
     p.rect_filled(bar, 3.0, t.cmd_bg);
     p.rect_stroke(bar, 3.0, Stroke::new(1.0, t.cmd_border), egui::StrokeKind::Inside);
+    let handle = handle(app, ui, &p, bar);
     // Prompt glyph.
-    p.text(pos2(bar.left() + 8.0, bar.center().y), egui::Align2::LEFT_CENTER, ">_", crate::theme::mono(), t.text_dim);
-    let mut x = bar.left() + 30.0;
+    p.text(pos2(handle.right() + 8.0, bar.center().y), egui::Align2::LEFT_CENTER, ">_", crate::theme::mono(), t.text_dim);
+    let mut x = handle.right() + 30.0;
     let prompt = app.session.current_prompt();
     let font = crate::theme::body();
     match &prompt {

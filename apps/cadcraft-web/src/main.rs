@@ -164,6 +164,7 @@ mod web {
                         let session = if app_bridge.is_some() { Session::empty() } else { Session::new() };
                         let control = crate::api::install(cc.egui_ctx.clone());
                         let mut app = CadApp::new(session, services()).with_control(control);
+                        app.ui.use_ribbon_workspace();
                         app.system_languages =
                             web_sys::window().map(|w| w.navigator().languages().iter().filter_map(|v| v.as_string()).collect()).unwrap_or_default();
                         if let Some(profile) = cc.storage.and_then(|s| s.get_string(cadcraft_ui_egui::options::PROFILE_KEY)) {

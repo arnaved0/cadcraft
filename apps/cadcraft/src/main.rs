@@ -375,8 +375,10 @@ fn main() -> eframe::Result {
                 app.services.start_pick = Some(sheet::start_pick(window, cc.egui_ctx.clone()));
             }
             let (workspace, restored, workspace_error) = workspace::Workspace::load(vars.config_dir.as_deref());
-            if let Some(ui) = restored {
-                app.ui = ui;
+            match restored {
+                Some(ui) => app.ui = ui,
+                // A first run starts in the Drafting & Annotation (ribbon) workspace.
+                None => app.ui.use_ribbon_workspace(),
             }
             app.set_system_cursor_default(vars.system_cursor == Switch::On);
             if let Some(error) = &workspace_error {

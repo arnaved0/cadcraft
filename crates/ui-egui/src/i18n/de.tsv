@@ -10,7 +10,7 @@
 	% of all commits	% aller Commits
 	* Wildcard Match	* Wildcard-Abgleich
 	*VARIES*	*VARIIERT*
-	+  |  Top  |  2D Wireframe	+  |  Oben  |  2D-Drahtmodell
+	[-][Top][2D Wireframe]	[-][Oben][2D-Drahtmodell]
 	+Bin	+Binär
 	+LOC	+Zeilen
 	1 Viewport	1 Ansichtsfenster
@@ -925,6 +925,7 @@
 	Time	Zeit
 	To get started, create or open a drawing.	Erstellen oder öffnen Sie eine Zeichnung, um zu beginnen.
 	Tool Bar	Werkzeugleiste
+	Ribbon	Multifunktionsleiste
 	Tool Sets	Werkzeuggruppen
 	Tools	Werkzeuge
 	Torus	Torus
